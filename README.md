@@ -28,3 +28,25 @@ All repositories in the OpenCHAMI github organization share the same [contributi
 General Development Ideas are tracked in our [roadmap](https://github.com/OpenCHAMI/roadmap) repository.  To get a common view of active development across all repositories, review the main [Roadmap Project](https://github.com/orgs/OpenCHAMI/projects/1).  Development issues from all repositories should be linked there for easy collaboration.
 
 We welcome feedback and PRs from the community!
+
+
+# Technical Steering Committee
+
+The Steering Committee is the governing body of the project, providing decision-making and oversight pertaining to the project. 
+
+The [charter](https://github.com/OpenCHAMI/.github/blob/main/CHARTER.MD) defines the scope and governance of the Steering Committee.
+
+## Members
+
+* Alex Lovell-Troy (**[@alexlovelltroy](https://github.com/alexlovelltroy)**), LANL
+* Mark Klein (**[@mdklein](https://github.com/mdklein)**), CSCS
+* Matt Williams (**[@milliams](https://github.com/milliams)**), BriCS
+* Brian Friesen (**[@bcfriesen](https://github.com/bcfriesen)**), NERSC
+* Harold Longley, (**[@haroldlongley](https://github.com/haroldlongley)**), HPE
+
+
+## Contact
+- Slack: [#technical-steering-committee](https://openchami.slack.com/archives/C06681FDYFM)
+- Private Mailing List: tsc@ochami.org
+- GitHub Teams:
+    - [@openchami/tsc](https://github.com/orgs/openchami/teams/tsc) - General Discussion
