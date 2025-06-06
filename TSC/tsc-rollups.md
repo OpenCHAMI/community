@@ -39,3 +39,19 @@ If a TSC member needs to be removed or resigns, please submit a pull request to 
 - **GitHub Handle:** [@GitHubHandle](https://github.com/GitHubHandle)  
 - **Effective Date:** [Month Year]  
 - **Reason:** [Explanation such as inactivity, resignation, or term expiration]
+
+## Board Member Replacement
+
+- **Name:** Evan Vigil-McClanahan
+- **GitHub Handle:** [@evanmcc](https://github.com/evanmcc)
+- **Affiliation:** NERSC
+- **Proposed Term Start:** 06/25
+- **Proposed Term End:** 06/26
+- **Justification:** Replacing Brian as the NERSC representative, Travis Raines [rainest](https://github.com/rainest) as alternate.
+
+Replacing:
+
+- **Name:** Brian Friesen
+- **GitHub Handle:** [@bcfriesen](https://github.com/bcfriesen)
+- **Effective Date:** 06/25
+- **Reason:** Persistent Conflict
