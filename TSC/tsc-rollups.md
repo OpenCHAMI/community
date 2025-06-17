@@ -11,7 +11,7 @@ This document tracks nominations, appointments, removals, and resignations of TS
 | Alex Lovell-Troy | [@alexlovelltroy](https://github.com/alexlovelltroy)       | LANL                          | Apr 2025 – Mar 2026  |
 | Mark Klein       | [@mdklein](https://github.com/mdklein)                     | CSCS                          | Apr 2025 – Mar 2026  |
 | Matt Williams    | [@milliams](https://github.com/milliams)                   | University of Bristol (BriCS) | Apr 2025 – Mar 2026  |
-| Travis Raines    | [rainest](https://github.com/rainest)                      | NERSC                         | Jun 2025 – Jun 2026  |
+| Travis Raines    | [@rainest](https://github.com/rainest)                     | NERSC                         | Jun 2025 – Jun 2026  |
 | Harold Longley   | [@haroldlongley](https://github.com/haroldlongley)         | HPE                           | Apr 2025 – Mar 2026  |
 
 ---
