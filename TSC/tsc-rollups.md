@@ -8,11 +8,12 @@ This document tracks nominations, appointments, removals, and resignations of TS
 
 | Name             | GitHub Handle                                              | Affiliation                   | Term                 |
 |------------------|------------------------------------------------------------|-------------------------------|----------------------|
-| Alex Lovell-Troy | [@alexlovelltroy](https://github.com/alexlovelltroy)       | LANL                          | Apr 2025 – Mar 2026  |
-| Mark Klein       | [@mdklein](https://github.com/mdklein)                     | CSCS                          | Apr 2025 – Mar 2026  |
-| Matt Williams    | [@milliams](https://github.com/milliams)                   | University of Bristol (BriCS) | Apr 2025 – Mar 2026  |
+| Alex Lovell-Troy | [@alexlovelltroy](https://github.com/alexlovelltroy)       | LANL                          | Apr 2025 – Jun 2026  |
+| Mark Klein       | [@mdklein](https://github.com/mdklein)                     | CSCS                          | Apr 2025 – Jun 2026  |
+| Matt Williams    | [@milliams](https://github.com/milliams)                   | University of Bristol (BriCS) | Apr 2025 – Jun 2026  |
 | Travis Raines    | [@rainest](https://github.com/rainest)                     | NERSC                         | Jun 2025 – Jun 2026  |
-| Harold Longley   | [@haroldlongley](https://github.com/haroldlongley)         | HPE                           | Apr 2025 – Mar 2026  |
+| Harold Longley   | [@haroldlongley](https://github.com/haroldlongley)         | HPE                           | Apr 2025 – Jun 2026  |
+| John Lockman     | [@j0hnL](https://github.com/j0hnL)                         | Dell Technologies             | Jun 2025 - Jun 2026  |
 
 ---
 
@@ -39,6 +40,16 @@ If a TSC member needs to be removed or resigns, please submit a pull request to 
 - **GitHub Handle:** [@GitHubHandle](https://github.com/GitHubHandle)  
 - **Effective Date:** [Month Year]  
 - **Reason:** [Explanation such as inactivity, resignation, or term expiration]
+
+### New Member Nomination
+- **Proposed By:** Alex Lovell-Troy
+- **New Member Name:** John Lockman  
+- **GitHub Handle:** [@j0hnL](https://github.com/j0hnL) 
+- **Affiliation:** Dell Technologies  
+- **Proposed Term Start:** Jun 2025  
+- **Proposed Term End:** Jun 2026  
+- **Justification:** Dell Technologies Partner Representative
+
 
 ## TSC Member Replacement
 - **Proposed By:** Evan Vigil-McClanahan
