@@ -38,15 +38,11 @@ The [charter](https://github.com/OpenCHAMI/.github/blob/main/CHARTER.MD) defines
 
 ## Members
 
-* Alex Lovell-Troy (**[@alexlovelltroy](https://github.com/alexlovelltroy)**), LANL
-* Mark Klein (**[@mdklein](https://github.com/mdklein)**), CSCS
-* Matt Williams (**[@milliams](https://github.com/milliams)**), BriCS
-* Brian Friesen (**[@bcfriesen](https://github.com/bcfriesen)**), NERSC
-* Harold Longley, (**[@haroldlongley](https://github.com/haroldlongley)**), HPE
+See [TSC/tsc-rollups.md](TSC/tsc-rollups.md) for the current TSC representatives
 
 
 ## Contact
 - Slack: [#technical-steering-committee](https://openchami.slack.com/archives/C06681FDYFM)
-- Private Mailing List: tsc@ochami.org
+- Private Mailing List: tsc@openchami.org
 - GitHub Teams:
     - [@openchami/tsc](https://github.com/orgs/openchami/teams/tsc) - General Discussion
