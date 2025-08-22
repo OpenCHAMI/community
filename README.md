@@ -36,9 +36,6 @@ The Steering Committee is the governing body of the project, providing decision-
 
 The [charter](https://github.com/OpenCHAMI/.github/blob/main/CHARTER.MD) defines the scope and governance of the Steering Committee.
 
-## Members
-
-See [TSC/tsc-rollups.md](TSC/tsc-rollups.md) for the current TSC representatives
 
 
 ## Contact
@@ -46,3 +43,8 @@ See [TSC/tsc-rollups.md](TSC/tsc-rollups.md) for the current TSC representatives
 - Private Mailing List: tsc@openchami.org
 - GitHub Teams:
     - [@openchami/tsc](https://github.com/orgs/openchami/teams/tsc) - General Discussion
+
+## Governance
+- Process (canonical): [GOVERNANCE.md](./GOVERNANCE.md)
+- TSC members: [TSC/tsc-rollups.md](./TSC/tsc-rollups.md)
+- Board members: [Board/board-rollups.md](./Board/board-rollups.md)
