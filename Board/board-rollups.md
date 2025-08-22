@@ -4,14 +4,18 @@ This document tracks nominations, appointments, alternates, removals, and resign
 
 ---
 
-
 ## Board Membership Rules
 
-**Membership**  
-- Membership on the Board is granted permanently to the founding institutions and one representative from the Technical Steering Committee (TSC).  
-- Each founding institution must nominate one primary and one alternate Board member. Both may attend meetings, but only the primary votes unless absent.  
-- The TSC must send one elected member yearly to attend all Board activities.  
-- A founding institution leaving the project must notify the Board in writing.  
+## Governing Board (Board Of Directors) 
+
+Membership on the board is granted permanently to the founding institutions and one representative from the Technical Steering Committee (the TSC). A founding institution is required to submit in writing to the board its intention to leave the project or the board. Each founding institution and the TSC is granted one vote on the board. Each founding institution appoints a representative and one alternate member. The TSC will be required to send one member to attend all board activities. The board shall define in these rules the mechanism by which members of the board will be accepted and removed. Unless otherwise stipulated, votes are carried by a simple majority of voting members.
+
+### Board Membership
+
+The Board comprises members nominated by the founding partners and non-founding partners that fulfill the membership criteria.
+
+Each founding partner must nominate one primary and one alternate Board member. Both individuals have the right to attend board meetings, but only the primary Board member has voting rights, unless the primary member is unavailable.
+
 
 **Voting & Quorum**  
 - Quorum: 50% of voting members.  

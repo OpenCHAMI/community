@@ -15,6 +15,15 @@ This document tracks nominations, appointments, removals, and resignations of TS
 | Harold Longley   | [@haroldlongley](https://github.com/haroldlongley)         | HPE                           | Apr 2025 – Jun 2026  |
 | John Lockman     | [@j0hnL](https://github.com/j0hnL)                         | Dell Technologies             | Jun 2025 - Jun 2026  |
 
+
+###  Technical Steering Committee Lead (TSC Lead)
+
+| Role | Incumbent | Term | Selection |
+|------|-----------|------|-----------|
+| **TSC Lead** | [Alex Lovell‑Troy](https://github.com/alexlovelltroy) | Apr 2025 – Mar 2026 | Elected annually by TSC simple‑majority vote |
+
+
+Role: The TSC lead acts as a bridge between the TSC and the Board. To effectively guide the project, the lead must stay informed about major issues, the project roadmap, and priorities of consortium partners. They are expected to help guide decisions in ways that are technically sound and responsive to community needs.
 ---
 
 ## Adding a New TSC Member
