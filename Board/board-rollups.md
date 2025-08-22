@@ -6,7 +6,7 @@ This document tracks nominations, appointments, alternates, removals, and resign
 
 ## Board Membership Rules
 
-## Governing Board (Board Of Directors) 
+### Governing Board (Board Of Directors) 
 
 Membership on the board is granted permanently to the founding institutions and one representative from the Technical Steering Committee (the TSC). A founding institution is required to submit in writing to the board its intention to leave the project or the board. Each founding institution and the TSC is granted one vote on the board. Each founding institution appoints a representative and one alternate member. The TSC will be required to send one member to attend all board activities. The board shall define in these rules the mechanism by which members of the board will be accepted and removed. Unless otherwise stipulated, votes are carried by a simple majority of voting members.
 
