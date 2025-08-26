@@ -36,13 +36,23 @@ Each founding partner must nominate one primary and one alternate Board member. 
 | BRICS                | Sadaf Alam         | Christopher Woods  | _TBD_       |
 | Dell                 | Luke Wilson        | John Lockman       | _TBD_       |
 | CSCS                 | Thomas Schulthess  | Mark Klein         | _TBD_       |
-| HPE                  | Larry Kaplan       | Andy Garside       | _TBD_       |
+| HPE                  | Shawn Brown        | Larry Kaplan       | _TBD_       |
 | LANL                 | Travis Cotton      | Gary Grider        | _TBD_       |
 | NERSC                | Eric Roman         | Brian Friesen      | _TBD_       |
 | **TSC Rep**          | Alex Lovell-Troy   | —                  | 1 year      |
 
 > Source of truth lives here. Update this table via PRs to this file.
 ---
+## Add Shawn Brown as HPE Board Member
+
+**New/Change Proposal**
+- Proposed by: Larry Kaplan
+- Partner: HPE
+- Role: Primary
+- Name: Shawn Brown
+- Effective Date: August 2025
+- Justification: Shawn is director over all HPC System Management for HPE
+
 
 ## Add/Replace a Board Member (Template)
 
