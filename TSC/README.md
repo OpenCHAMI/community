@@ -24,3 +24,6 @@ The OpenCHAMI community is for anyone interested in operating an HPC system with
 3. If you have software that you'd like to contribute, contact the [Technical Standards Committee](mailto:tsc@openchami.org)
 5. Find us at https://www.openchami.org for more information
 
+## Meetings
+
+All TSC meetings are public and listed on our [Linux Foundation Public Calendar](https://zoom-lfx.platform.linuxfoundation.org/meetings/openchami?view=week)
