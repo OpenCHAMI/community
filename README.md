@@ -30,15 +30,27 @@ General Development Ideas are tracked in our [roadmap](https://github.com/OpenCH
 We welcome feedback and PRs from the community!
 
 
-# Technical Steering Committee
+## Governance
 
-The Steering Committee is the governing body of the project, providing decision-making and oversight pertaining to the project. 
-
-The [charter](https://github.com/OpenCHAMI/.github/blob/main/CHARTER.MD) defines the scope and governance of the Steering Committee.
+As a [Linux Foundation](https://www.linuxfoundation.org/) Project and a member of the [High Performance Computing Foundation](https://www.hpsf.io), OpenCHAMI is governed in accordance with the [Charter](/Charter.md) and [Governance](/Governance.md) documents in this repository ([github.com/openchami/community](https://www.github.com/openchami/community)).  Our board guides the technical steering committee which is responsible for the operational issues of the project.
 
 ## Members
 
-See [TSC/tsc-rollups.md](TSC/tsc-rollups.md) for the current TSC representatives
+OpenCHAMI membership is extended to organizations with an interest to join and a demonstrated investment in the future of the project.  As outlined in our governance documents, each member organziation receives a seat on the governing board and a seat on the technical steering committee.
+
+**Current Members** (listed alphabetically):
+
+* [BriCS](https://bristol.ac.uk/research/centres/bristol-supercomputing/)
+* [CSCS](https://www.cscs.ch)
+* [Dell](https://www.dell.com)
+* [HPE](https://www.hpe.com)
+* [LANL](https://www.lanl.gov)
+* [NERSC](https://www.nersc.gov)
+
+### Board and Technical Steering Committee
+
+See [TSC/tsc-rollups.md](/TSC/tsc-rollups.md) for the current TSC representatives
+See [Board/board-rollups.md](/Board/board-rollups.md) for current Board representative)
 
 
 ## Contact
