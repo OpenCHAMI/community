@@ -10,14 +10,14 @@
 - [@j0hnL](https://github.com/j0hnL)  
 - [@mdklein](https://github.com/mdklein)  
 - [@rainest](https://github.com/rainest)  
-- [@trcotton](https://github.com/trcotton)  
-- Jason Sollum
-- John Lockman
-- [@shots47s](https://github.com/shot47s)
-  @[jvd10](https://github.com/jvd10)
-- Yogi Porta
-- Adam Hough
+- [@trcotton](https://github.com/trcotton)
+- [@adamhough](https://github.com/adamhough)
 - Atif Ali
+- Sadaf Alam
+- [@jsollom-hoe](https://github.com/jsollom-hpe)
+- [@jvd10](https://github.com/jvd10)
+- [@yogi4](https://github.com/yogi4)
+- [@shots47s](htts://github.com/shots47s)
 
 **Context:** 
 OpenCHAMI/roadmap#106
