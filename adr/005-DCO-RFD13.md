@@ -1,10 +1,23 @@
 # ADR 005: Adopt Developer Certificate of Origin (DCO) for Code Contributions
 
 **Date Proposed:** 2025-09-10  
-**Status:** Accepted (Consensus reached at 2025 Summit)
+**Status:** Accepted 
 
 **Participants**  
-Alex Lovell-Troy, Larry Kaplan, Adam Hough, Harold Longley, Atif Ali, Sadaf Alam, Travis Raines, Chris Harris, Jason Sollom, Jay DePasse, Mark Klein, Travis Cotton, Yogi Porla
+- [@alexlovelltroy](https://github.com/alexlovelltroy)  
+- [@cjh1](https://github.com/cjh1)  
+- [@haroldlongley](https://github.com/haroldlongley)  
+- [@j0hnL](https://github.com/j0hnL)  
+- [@mdklein](https://github.com/mdklein)  
+- [@rainest](https://github.com/rainest)  
+- [@trcotton](https://github.com/trcotton)
+- [@adamhough](https://github.com/adamhough)
+- Atif Ali
+- Sadaf Alam
+- [@jsollom-hoe](https://github.com/jsollom-hpe)
+- [@jvd10](https://github.com/jvd10)
+- [@yogi4](https://github.com/yogi4)
+
 ---
 
 **Context:**  
@@ -37,8 +50,8 @@ Given the open source community norms and ease of adoption, CLA was not selected
 ---
 
 **Non-Goals:**  
-- This ADR does not establish a CLA process.  
-- Does not address relicensing or copyright ownership updates for legacy HPE code (to be handled separately).
+- This ADR does not establish a CLA process.
+- Nothing in this decision precludes a future CLA process.
 
 ---
 
