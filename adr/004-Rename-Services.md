@@ -1,24 +1,28 @@
-ADR 004: Rename OpenCHAMI Components 
-Date Proposed: 2025-09-11
-Status: Proposed
+**ADR 004:** Rename OpenCHAMI Components 
+**Date Proposed:** 2025-09-11
+**Status:** Proposed
 
-Participants:
-- @alexlovelltroy
-- @haroldlongley
-- Mark Klein
+**Participants:**
+
+- [@alexlovelltroy](https://github.com/alexlovelltroy)  
+- [@cjh1](https://github.com/cjh1)  
+- [@haroldlongley](https://github.com/haroldlongley)  
+- [@j0hnL](https://github.com/j0hnL)  
+- [@mdklein](https://github.com/mdklein)  
+- [@rainest](https://github.com/rainest)  
+- [@trcotton](https://github.com/trcotton)  
 - Jason Sollum
 - John Lockman
-- @shots47s
-- Jay Depasse
+- [@shots47s](https://github.com/shot47s)
+  @[jvd10](https://github.com/jvd10)
 - Yogi Porta
 - Adam Hough
-- Harold Longley
 - Atif Ali
 
-Context: 
+**Context:** 
 OpenCHAMI/roadmap#106
 
-Decision: 
+**Decision:**
 
 Execute the following renamings:
 
@@ -27,30 +31,30 @@ Execute the following renamings:
 - **bss** should be renamed **ochami-bootscript-service**
 - **coresmd** should be renamed **ochami-name-service**
 - **power-control** should be renamed **ochami-power-control**
-- ochami should have the repo renamed **ochami-cli**, but no change to the binary
+- **ochami** should have the repo renamed **ochami-cli**, but no change to the binary
 - **image-builder** should be renamed to reflect what it does, but to not conflict with upstream packages.
 - **Magellan** should be renamed or should be the origin of a Ferdiand Magellan naming scheme
 - **tokensmith** should be renamed or should be the origin of a "smith" naming scheme
 
-Other Options Considered: 
+**Other Options Considered:**
 
 - Renaming **cloud-init** to **ochami-configuration-service**
 - Renaming **cloud-init** to **ochami-node-init-service**
   
 
-Consequences: 
+**Consequences:**
 
 - Repositories will be renamed and have cascading effect on any code or markdown that refers to these repositories.
 
-Non-Goals:
+**Non-Goals:**
 
 - Not renaming all repositories
 
-Points of Contention:
+**Points of Contention:
 
 - The renaming of **cloud-init** was heavily debated, and the current recorded decision was developed from the majority concensus.
 
-Notes: [Anything else?]
+**Notes: **
 
 References:
 
