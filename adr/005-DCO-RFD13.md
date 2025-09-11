@@ -14,7 +14,7 @@
 - [@adamhough](https://github.com/adamhough)
 - Atif Ali
 - Sadaf Alam
-- [@jsollom-hoe](https://github.com/jsollom-hpe)
+- [@jsollom-hpe](https://github.com/jsollom-hpe)
 - [@jvd10](https://github.com/jvd10)
 - [@yogi4](https://github.com/yogi4)
 
