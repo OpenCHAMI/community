@@ -1,6 +1,6 @@
 # ADR [000]: Establish an Architecture Decision Record (ADR) Process for Documenting Key Decisions
 
-**Date Proposed:** [YYYY-MM-DD] (Items should close after 6 weeks of discussion based on consensus)
+**Date Proposed:** 2025-07-03
 **Status:** Accepted
 
 **Participants**
