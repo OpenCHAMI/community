@@ -16,7 +16,7 @@
 ---
 
 **Context:**
-[Background and context leading to the decision.]
+
 Implement an Architecture Decision Record (ADR) process to systematically document and maintain key architectural and technical decisions.
 Benefits:
 
@@ -25,10 +25,9 @@ Benefits:
 - Onboarding: Helps new contributors understand past decisions and the project's direction.
 - Reference: Serves as a centralized repository for decision-making, reducing redundancy and confusion.
 
-**Decision:**
-Here’s the **markdown-formatted summary** of the decisions and discussions from [OpenCHAMI roadmap issue #98](https://github.com/OpenCHAMI/), based on the 2025 summit:
-
 ---
+
+**Decision:**
 
 ## Summary of Decisions from 2025 OpenCHAMI Summit
 
@@ -39,10 +38,10 @@ Here’s the **markdown-formatted summary** of the decisions and discussions fro
 
 ### Revised Acceptance Criteria
 - Move away from approval by just **2 TSC members**.
-- Consider requiring a **majority vote** from the TSC.
+- Require a **majority vote** from the TSC.
 
 ### ADR Template Improvements
-- Add a section for **“Options”** to document alternative approaches considered.
+- Add a section for **“Other Options Considered”** to document alternative approaches considered.
 - Include **“Non-goals”** and **points of contention** to clarify scope and disagreements.
 
 ### Dashboard for ADR Requests
@@ -71,7 +70,25 @@ No Other options considers as this is required.
 ---
 
 **Consequences:**
-Avoids Chaos.
+## If No ADR process were defined:
+
+1. **Lost Rationale**  
+   No record of *why* decisions were made → confusion and repeated debates.
+
+2. **Knowledge Drain**  
+   Decisions leave with people → hard to maintain continuity.
+
+3. **Repetition & Waste**  
+   Teams revisit the same issues → slows progress and wastes time.
+
+4. **Poor Accountability**  
+   No traceability → harder to learn from mistakes or improve.
+
+5. **Misalignment**  
+   Stakeholders may misunderstand decisions → leads to friction and rework.
+
+6. **Architectural Drift**  
+   Inconsistent decisions over time → increases technical debt.
 
 ---
 
