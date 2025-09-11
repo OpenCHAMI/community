@@ -3,17 +3,17 @@ Date Proposed: 2025-09-11
 Status: Proposed
 
 Participants:
-alexlovelltroy
-Larry Kaplan
-Mark Klein
-Jason Sollum
-John Lockman
-Shawn Brown (shots47s)
-Jay Depasse
-Yogi Porta
-Adam Hough
-Harold Longley
-Atif Ali
+- @alexlovelltroy
+- @haroldlongley
+- Mark Klein
+- Jason Sollum
+- John Lockman
+- @shots47s
+- Jay Depasse
+- Yogi Porta
+- Adam Hough
+- Harold Longley
+- Atif Ali
 
 Context: 
 OpenCHAMI/roadmap#106
@@ -22,24 +22,36 @@ Decision:
 
 Execute the following renamings:
 
-cloud-init should be renamed ochami-metadata-service
-smd should be renamed ochami-inventory-service
-bss should be renamed ochami-bootscript-service
-coresmd should be renamed ochami-name-service
-power-control should be renamed ochami-power-control
-ochami should have the repo renamed ochami-cli, but no change to the binary
+- **cloud-init** should be renamed **ochami-cloud-init-service**
+- **smd** should be renamed **ochami-inventory-service**
+- **bss** should be renamed **ochami-bootscript-service**
+- **coresmd** should be renamed **ochami-name-service**
+- **power-control** should be renamed **ochami-power-control**
+- ochami should have the repo renamed **ochami-cli**, but no change to the binary
+- **image-builder** should be renamed to reflect what it does, but to not conflict with upstream packages.
+- **Magellan** should be renamed or should be the origin of a Ferdiand Magellan naming scheme
+- **tokensmith** should be renamed or should be the origin of a "smith" naming scheme
 
+Other Options Considered: 
 
-Other Options Considered: [Choices considered and discarded]
+- Renaming **cloud-init** to **ochami-configuration-service**
+- Renaming **cloud-init** to **ochami-node-init-service**
+  
 
-Consequences: [Implications of the decision.]
+Consequences: 
 
-Non-Goals: [What are we specifically excluding]
+- Repositories will be renamed and have cascading effect on any code or markdown that refers to these repositories.
 
-Points of Contention: [Areas of disagreement]
+Non-Goals:
+
+- Not renaming all repositories
+
+Points of Contention:
+
+- The renaming of **cloud-init** was heavily debated, and the current recorded decision was developed from the majority concensus.
 
 Notes: [Anything else?]
 
 References:
 
-[Link to related discussions or issues]
+- OpenCHAMI/roadmap#106
