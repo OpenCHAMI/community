@@ -1,3 +1,10 @@
+---
+id: 000
+title: "Establish an Architecture Decision Record (ADR) Process for Documenting Key Decisions"
+status: "Accepted"
+date: "2025-07-03"
+---
+
 # ADR [000]: Establish an Architecture Decision Record (ADR) Process for Documenting Key Decisions
 
 **Date Proposed:** 2025-07-03
@@ -33,8 +40,7 @@ Benefits:
 
 ### Timing Constraints for ADR Decisions
 - Proposals should be decided within **6 weeks** of submission.
-- Ensures at least one **TSC meeting** can review the proposal.
-- Need to define what happens when the timer expires (e.g., auto-reject, escalate, etc.).
+- Ensures at least one monthly **TSC meeting** can used to review the proposal if needed.
 
 ### Revised Acceptance Criteria
 - Move away from approval by just **2 TSC members**.
@@ -104,6 +110,10 @@ N/A
 
 **Notes:**
 
+ - [ ] Create ADR instructions in this repository
+ - [ ] Establish automation for votes and timeouts
+ - [ ] Establish dashboard(s) for use at TSC meetings
+
 ---
 
 **References:**
@@ -111,3 +121,5 @@ N/A
 - [AWS ADR Process](https://docs.aws.amazon.com/prescriptive-guidance/latest/architectural-decision-records/adr-process.html)
 - [GitHub adr organization](https://adr.github.io/)
 - [Timing Architectural Decisions (ADs)](https://ozimmer.ch/assets/presos/ZIO-ITARCKeynoteTADv101p.pdf)
+- [Alex Lovell-Troy's `adrctl`](https://github.com/alexlovelltroy/adrctl)
+- ADR Template in this repository [template.md](/adr/template.md)
