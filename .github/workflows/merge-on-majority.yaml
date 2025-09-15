@@ -1,0 +1,173 @@
+name: Merge on Team Majority
+
+on:
+  pull_request_review:
+    types: [submitted, edited, dismissed]
+    paths: 
+      - 'adrs/**'
+  pull_request:
+    types: [synchronize, reopened, labeled]
+    paths: 
+      - 'adrs/**'
+
+permissions:
+  # GITHUB_TOKEN perms (used in steps 2–3)
+  contents: write          # needed to merge
+  pull-requests: write     # needed to comment + merge
+
+env:
+  ORG: openchami        # <-- org name (not org/team)
+  TEAM_SLUG: tsc        # <-- team slug only (from URL)
+  MERGE_METHOD: squash  # merge|squash|rebase
+
+jobs:
+  team-majority:
+    runs-on: ubuntu-latest
+    steps:
+      # -----------------------------------------------------------------------
+      # STEP 1: Compute approval status (uses high-priv token w/ read:org)
+      # - Why: GITHUB_TOKEN can't list org team members; we keep this step minimal.
+      # - Secret required: ORG_READ_TOKEN with scopes: repo, read:org
+      # - Outputs: have, needed, teamSize, approvers_json, remaining_json, majority
+      # -----------------------------------------------------------------------
+      - name: Compute team approval status
+        id: compute
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.ORG_READ_TOKEN }}
+          script: |
+            const owner = process.env.ORG;
+            const repo  = context.repo.repo;
+            const prNum = context.issue.number;
+
+            // Get team members
+            const members = await github.paginate(
+              github.rest.teams.listMembersInOrg,
+              { org: owner, team_slug: process.env.TEAM_SLUG, per_page: 100 }
+            );
+            const teamLogins = members.map(m => m.login).sort((a,b)=>a.localeCompare(b));
+            const team = new Set(teamLogins.map(s => s.toLowerCase()));
+            const teamSize = team.size;
+            const needed = Math.floor(teamSize / 2) + 1;
+
+            // Get *latest* review state per user
+            const reviews = await github.paginate(
+              github.rest.pulls.listReviews,
+              { owner, repo, pull_number: prNum, per_page: 100 }
+            );
+            const latestByUser = new Map();
+            for (const r of reviews) {
+              if (!r.user) continue;
+              latestByUser.set(r.user.login.toLowerCase(), r.state);
+            }
+
+            const approvers = [];
+            for (const [login, state] of latestByUser.entries()) {
+              if (state === 'APPROVED' && team.has(login)) approvers.push(login);
+            }
+            approvers.sort((a,b)=>a.localeCompare(b));
+
+            const have = approvers.length;
+            const remaining = teamLogins.filter(u => !approvers.includes(u.toLowerCase()));
+            const majority = have >= needed;
+
+            core.setOutput('have', String(have));
+            core.setOutput('needed', String(needed));
+            core.setOutput('teamSize', String(teamSize));
+            core.setOutput('approvers_json', JSON.stringify(approvers));
+            core.setOutput('remaining_json', JSON.stringify(remaining));
+            core.setOutput('majority', String(majority));
+
+      # -----------------------------------------------------------------------
+      # STEP 2: Upsert a "sticky" status comment (uses only GITHUB_TOKEN)
+      # - Finds/updates a single comment identified by a hidden marker.
+      # - No org/team read here; uses outputs from step 1.
+      # -----------------------------------------------------------------------
+      - name: Update sticky status comment
+        id: comment
+        uses: actions/github-script@v7
+        env:
+          MARK: '<!-- team-majority-status -->'
+        with:
+          github-token: ${{ github.token }}
+          script: |
+            const owner = context.repo.owner;
+            const repo  = context.repo.repo;
+            const prNum = context.issue.number;
+            const MARK  = process.env.MARK;
+
+            const have = Number(`${{ steps.compute.outputs.have }}`);
+            const needed = Number(`${{ steps.compute.outputs.needed }}`);
+            const teamSize = Number(`${{ steps.compute.outputs.teamSize }}`);
+            const approvers = JSON.parse(`${{ toJson(steps.compute.outputs.approvers_json) }}`);
+            const remaining = JSON.parse(`${{ toJson(steps.compute.outputs.remaining_json) }}`);
+            const teamSlug = process.env.TEAM_SLUG;
+
+            const fmtList = arr => (arr.length ? arr.map(u=>`@${u}`).join(', ') : '_none_');
+            const statusLine = have >= needed
+              ? `✅ **Majority reached:** ${have}/${needed} approvals from \`${teamSlug}\`.`
+              : `⏳ **Approvals:** ${have}/${needed} from \`${teamSlug}\`. Need **${needed - have}** more.`;
+
+            const body = `${MARK}
+${statusLine}
+
+**Approved by:** ${fmtList(approvers)}
+**Still needed from:** ${fmtList(remaining)}
+
+<sub>Team size considered: ${teamSize}. This comment auto-updates as reviews change.</sub>`;
+
+            // Find existing sticky comment by marker (prefer bot comments)
+            const comments = await github.paginate(
+              github.rest.issues.listComments,
+              { owner, repo, issue_number: prNum, per_page: 100 }
+            );
+            const existing = comments.find(c => c.body && c.body.includes(MARK));
+
+            if (existing) {
+              await github.rest.issues.updateComment({
+                owner, repo, comment_id: existing.id, body
+              });
+            } else {
+              await github.rest.issues.createComment({
+                owner, repo, issue_number: prNum, body
+              });
+            }
+
+      # -----------------------------------------------------------------------
+      # STEP 3: If majority met AND checks are green, merge (uses GITHUB_TOKEN)
+      # - Keeps high-priv token out of merging.
+      # - If you use required status checks, this will wait until they're green.
+      # -----------------------------------------------------------------------
+      - name: Merge if ready
+        if: ${{ steps.compute.outputs.majority == 'true' }}
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ github.token }}
+          script: |
+            const owner = context.repo.owner;
+            const repo  = context.repo.repo;
+            const prNum = context.issue.number;
+
+            // Ensure status checks are successful before merging
+            const pr = (await github.rest.pulls.get({ owner, repo, pull_number: prNum })).data;
+            const status = await github.rest.repos.getCombinedStatusForRef({
+              owner, repo, ref: pr.head.sha
+            });
+            if (status.data.state !== 'success') {
+              core.info(`Checks not successful yet: ${status.data.state}`);
+              return;
+            }
+
+            await github.rest.pulls.merge({
+              owner, repo, pull_number: prNum, merge_method: process.env.MERGE_METHOD
+            });
+            core.info('Merged by team majority ✔️');
+
+# -----------------------------------------------------------------------------
+# NOTES:
+# - ORG_READ_TOKEN is only used in Step 1 and must have scopes: repo, read:org
+# - GITHUB_TOKEN handles commenting + merging; scopes controlled by permissions:
+#     contents: write, pull-requests: write
+# - Marker comment ensures a single "sticky" status thread is updated in place.
+# - Team membership changes update automatically on the next event run.
+# -----------------------------------------------------------------------------
