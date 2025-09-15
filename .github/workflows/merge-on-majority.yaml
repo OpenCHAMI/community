@@ -11,72 +11,64 @@ on:
       - 'adrs/**'
 
 permissions:
-  contents: write          # needed to merge
-  pull-requests: write     # needed to comment + merge
+  contents: write
+  pull-requests: write
 
 env:
-  ORG: openchami        # <-- org login
-  TEAM_SLUG: tsc        # <-- team slug
-  MERGE_METHOD: squash  # merge|squash|rebase
+  ORG: openchami
+  TEAM_SLUG: tsc
+  MERGE_METHOD: squash
 
 jobs:
   team-majority:
     runs-on: ubuntu-latest
     steps:
-      # -----------------------------------------------------------------------
-      # STEP 1: Compute approval status (uses high-priv token w/ read:org)
-      # - Secret required: ORG_READ_TOKEN (scopes: repo, read:org)
-      # - Outputs: have, needed, teamSize, approvers_json, remaining_json, majority
-      # -----------------------------------------------------------------------
       - name: Compute team approval status
         id: compute
         uses: actions/github-script@v7
         with:
-            github-token: ${{ secrets.ORG_READ_TOKEN }}
-            script: |
-              const owner = process.env.ORG;
-              const repo  = context.repo.repo;
-              const prNum = context.issue.number;
+          github-token: ${{ secrets.ORG_READ_TOKEN }}
+          script: |
+            const owner = process.env.ORG;
+            const repo  = context.repo.repo;
+            const prNum = context.issue.number;
 
-              // Get team members
-              const members = await github.paginate(
-                github.rest.teams.listMembersInOrg,
-                { org: owner, team_slug: process.env.TEAM_SLUG, per_page: 100 }
-              );
-              const teamLogins = members.map(m => m.login).sort((a,b)=>a.localeCompare(b));
-              const team = new Set(teamLogins.map(s => s.toLowerCase()));
-              const teamSize = team.size;
-              const needed = Math.floor(teamSize / 2) + 1;
+            const members = await github.paginate(
+              github.rest.teams.listMembersInOrg,
+              { org: owner, team_slug: process.env.TEAM_SLUG, per_page: 100 }
+            );
+            const teamLogins = members.map(m => m.login).sort((a,b)=>a.localeCompare(b));
+            const team = new Set(teamLogins.map(s => s.toLowerCase()));
+            const teamSize = team.size;
+            const needed = Math.floor(teamSize / 2) + 1;
 
-              // Get latest review state per user
-              const reviews = await github.paginate(
-                github.rest.pulls.listReviews,
-                { owner, repo, pull_number: prNum, per_page: 100 }
-              );
-              const latestByUser = new Map();
-              for (const r of reviews) {
-                if (!r.user) continue;
-                latestByUser.set(r.user.login.toLowerCase(), r.state);
-              }
+            const reviews = await github.paginate(
+              github.rest.pulls.listReviews,
+              { owner, repo, pull_number: prNum, per_page: 100 }
+            );
+            const latestByUser = new Map();
+            for (const r of reviews) {
+              if (!r.user) continue;
+              latestByUser.set(r.user.login.toLowerCase(), r.state);
+            }
 
-              const approvers = [];
-              for (const [login, state] of latestByUser.entries()) {
-                if (state === 'APPROVED' && team.has(login)) approvers.push(login);
-              }
-              approvers.sort((a,b)=>a.localeCompare(b));
+            const approvers = [];
+            for (const [login, state] of latestByUser.entries()) {
+              if (state === 'APPROVED' && team.has(login)) approvers.push(login);
+            }
+            approvers.sort((a,b)=>a.localeCompare(b));
 
-              const have = approvers.length;
-              const remaining = teamLogins.filter(u => !approvers.includes(u.toLowerCase()));
-              const majority = have >= needed;
+            const have = approvers.length;
+            const remaining = teamLogins.filter(u => !approvers.includes(u.toLowerCase()));
+            const majority = have >= needed;
 
-              core.setOutput('have', String(have));
-              core.setOutput('needed', String(needed));
-              core.setOutput('teamSize', String(teamSize));
-              core.setOutput('approvers_json', JSON.stringify(approvers));
-              core.setOutput('remaining_json', JSON.stringify(remaining));
-              core.setOutput('majority', String(majority));
+            core.setOutput('have', String(have));
+            core.setOutput('needed', String(needed));
+            core.setOutput('teamSize', String(teamSize));
+            core.setOutput('approvers_json', JSON.stringify(approvers));
+            core.setOutput('remaining_json', JSON.stringify(remaining));
+            core.setOutput('majority', String(majority));
 
-      # (Optional) Debug: uncomment to inspect raw outputs
       # - name: Debug outputs
       #   run: |
       #     echo "have=${{ steps.compute.outputs.have }}"
@@ -86,11 +78,6 @@ jobs:
       #     echo "remaining=${{ steps.compute.outputs.remaining_json }}"
       #     echo "majority=${{ steps.compute.outputs.majority }}"
 
-      # -----------------------------------------------------------------------
-      # STEP 2: Upsert a "sticky" status comment (uses only GITHUB_TOKEN)
-      # Refactored to pass prior-step outputs via env to avoid inline expression
-      # parsing edge cases in multiline template literals.
-      # -----------------------------------------------------------------------
       - name: Update sticky status comment
         id: comment
         uses: actions/github-script@v7
@@ -115,7 +102,6 @@ jobs:
               TEAM_SLUG
             } = process.env;
 
-            // Parse arrays defensively
             let approvers = [];
             let remaining = [];
             try {
@@ -170,11 +156,6 @@ ${statusLine}
               core.info('Created new majority status comment.');
             }
 
-      # -----------------------------------------------------------------------
-      # STEP 3: If majority met AND checks are green, merge (uses GITHUB_TOKEN)
-      # - Uses combined status API; if you rely solely on GitHub Checks (not
-      #   classic statuses), consider augmenting with checks.listForRef.
-      # -----------------------------------------------------------------------
       - name: Merge if ready
         if: ${{ steps.compute.outputs.majority == 'true' }}
         uses: actions/github-script@v7
@@ -186,19 +167,9 @@ ${statusLine}
             const prNum = context.issue.number;
 
             const pr = (await github.rest.pulls.get({ owner, repo, pull_number: prNum })).data;
-
-            // Get combined (legacy) status
             const status = await github.rest.repos.getCombinedStatusForRef({
               owner, repo, ref: pr.head.sha
             });
-
-            // OPTIONAL: also inspect checks API (uncomment if needed)
-            // const checks = await github.rest.checks.listForRef({ owner, repo, ref: pr.head.sha });
-            // const failingCheck = checks.data.check_runs.find(r => r.conclusion && r.conclusion !== 'success');
-            // if (failingCheck) {
-            //   core.info(`A check run is not successful: ${failingCheck.name} -> ${failingCheck.conclusion}`);
-            //   return;
-            // }
 
             if (status.data.state !== 'success') {
               core.info(`Checks not successful yet (combined status = ${status.data.state}).`);
@@ -213,11 +184,8 @@ ${statusLine}
             });
             core.info('Merged by team majority ✔️');
 
-# -----------------------------------------------------------------------------
 # NOTES:
-# - ORG_READ_TOKEN is only used in Step 1; must have: repo, read:org
-# - GITHUB_TOKEN handles commenting + merging via permissions above.
-# - Step 2 passes all dynamic data via env -> avoids expression interpolation issues.
-# - If you introduce required status checks using only GitHub Checks, consider
-#   uncommenting the checks.listForRef logic.
-# -----------------------------------------------------------------------------
+# - Ensure you did NOT paste markdown fences (```).
+# - If error persists, dump numbered lines:
+#     nl -ba .github/workflows/merge-on-majority.yaml | sed -n '1,160p'
+# - Look for stray backticks or tabs: grep -nP '\t|```' .github/workflows/merge-on-majority.yaml
