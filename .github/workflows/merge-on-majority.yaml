@@ -99,8 +99,8 @@ jobs:
             const have = Number(`${{ steps.compute.outputs.have }}`);
             const needed = Number(`${{ steps.compute.outputs.needed }}`);
             const teamSize = Number(`${{ steps.compute.outputs.teamSize }}`);
-            const approvers = JSON.parse(`${{ toJson(steps.compute.outputs.approvers_json) }}`);
-            const remaining = JSON.parse(`${{ toJson(steps.compute.outputs.remaining_json) }}`);
+            const approvers = JSON.parse(`${{ steps.compute.outputs.approvers_json }}`);
+            const remaining = JSON.parse(`${{ steps.compute.outputs.remaining_json }}`);
             const teamSlug = process.env.TEAM_SLUG;
 
             const fmtList = arr => (arr.length ? arr.map(u=>`@${u}`).join(', ') : '_none_');
