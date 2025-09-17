@@ -9,6 +9,16 @@ on:
     types: [synchronize, reopened, labeled]
     paths:
       - 'adrs/**'
+  workflow_dispatch:
+    inputs:
+      pr_number:
+        description: 'Pull Request Number'
+        required: false
+        default: ''
+      sha:
+        description: 'Commit SHA'
+        required: false
+        default: ''
 
 permissions:
   contents: write
