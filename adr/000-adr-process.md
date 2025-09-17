@@ -59,7 +59,7 @@ Benefits:
 
 ### Handling Low-Frequency TSC Meetings
 - Monthly meetings are too infrequent for timely decisions.
-- Suggest handling ADRs **asynchronously**, similar to [Issue #95](https://github.com/OpenCHAMI/):
+- Suggest handling ADRs **asynchronously**, similar to [OpenCHAMI/roadmap#95](https://github.com/OpenCHAMI/roadmap/issues/95).
   - Maintain a board of ADRs expected to be discussed
   - Announce new ADRs when added
   - Require a **minimum 6-week lead time** before decisions
