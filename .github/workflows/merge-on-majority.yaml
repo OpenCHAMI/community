@@ -127,12 +127,12 @@ jobs:
               : `⏳ **Approvals:** ${have}/${needed} from \`${TEAM_SLUG}\`. Need **${needed - have}** more.`;
 
             const body = `${MARK}
-${statusLine}
+            ${statusLine}
 
-**Approved by:** ${fmtList(approvers)}
-**Still needed from:** ${fmtList(remaining)}
+            **Approved by:** ${fmtList(approvers)}
+            **Still needed from:** ${fmtList(remaining)}
 
-<sub>Team size considered: ${teamSize}. This comment auto-updates as reviews change.</sub>`;
+            <sub>Team size considered: ${teamSize}. This comment auto-updates as reviews change.</sub>`;
 
             const owner = context.repo.owner;
             const repo  = context.repo.repo;
