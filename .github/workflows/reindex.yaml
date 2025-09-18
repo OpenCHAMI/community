@@ -5,6 +5,9 @@ on:
         paths:
             - 'adr/**'
 
+permissions:
+    contents: write
+
 jobs:
     regenerate-index:
         runs-on: ubuntu-latest
