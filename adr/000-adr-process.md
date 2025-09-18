@@ -5,7 +5,7 @@ status: "Accepted"
 date: "2025-07-03"
 ---
 
-# ADR [000]: Establish an Architecture Decision Record (ADR) Process for Documenting Key Decisions
+# ADR 000: Establish an Architecture Decision Record (ADR) Process for Documenting Key Decisions
 
 **Date Proposed:** 2025-07-03
 **Status:** Accepted
