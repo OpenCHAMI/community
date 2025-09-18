@@ -1,0 +1,83 @@
+name: Merge on Team Majority
+
+on:
+  pull_request_review:
+    types: [submitted, edited, dismissed]
+    paths:
+      - 'adrs/**'
+  pull_request:
+    types: [synchronize, reopened, labeled]
+    paths:
+      - 'adrs/**'
+  workflow_dispatch:
+    inputs:
+      pr_number:
+        description: 'Pull Request Number'
+        required: false
+        default: ''
+      sha:
+        description: 'Commit SHA'
+        required: false
+        default: ''
+
+permissions:
+  contents: write
+  pull-requests: write
+
+env:
+  ORG: openchami
+  TEAM_SLUG: tsc
+  MERGE_METHOD: squash
+
+jobs:
+  team-majority:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Compute team approval status
+        id: compute
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.ORG_READ_TOKEN }}
+          script: |
+            const run = require('./.github/scripts/compute-team-majority.js');
+            await run({ github, context, core });
+
+      # - name: Debug outputs
+      #   run: |
+      #     echo "have=${{ steps.compute.outputs.have }}"
+      #     echo "needed=${{ steps.compute.outputs.needed }}"
+      #     echo "teamSize=${{ steps.compute.outputs.teamSize }}"
+      #     echo "approvers=${{ steps.compute.outputs.approvers_json }}"
+      #     echo "remaining=${{ steps.compute.outputs.remaining_json }}"
+      #     echo "majority=${{ steps.compute.outputs.majority }}"
+
+      - name: Update sticky status comment
+        id: comment
+        uses: actions/github-script@v7
+        env:
+          MARK: '<!-- team-majority-status -->'
+          HAVE: ${{ steps.compute.outputs.have }}
+          NEEDED: ${{ steps.compute.outputs.needed }}
+          TEAM_SIZE: ${{ steps.compute.outputs.teamSize }}
+          APPROVERS_JSON: ${{ steps.compute.outputs.approvers_json }}
+          REMAINING_JSON: ${{ steps.compute.outputs.remaining_json }}
+          TEAM_SLUG: ${{ env.TEAM_SLUG }}
+        with:
+          github-token: ${{ github.token }}
+          script: |
+            const run = require('./.github/scripts/update-majority-comment.js');
+            await run({ github, context, core });
+
+      - name: Merge if ready
+        if: ${{ steps.compute.outputs.majority == 'true' }}
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ github.token }}
+          script: |
+            const run = require('./.github/scripts/merge-if-ready.js');
+            await run({ github, context, core });

@@ -1,0 +1,29 @@
+name: Regenerate ADR Index
+
+on:
+    push:
+        paths:
+            - 'adr/**'
+
+jobs:
+    regenerate-index:
+        runs-on: ubuntu-latest
+        steps:
+            - name: Checkout repository
+              uses: actions/checkout@v4
+
+            - name: Regenerate ADR index
+              uses: alexlovelltroy/adrctl-action@v1
+              with:
+                    command: index
+                    directory: adr
+
+            - name: Commit and push changes
+              run: |
+                    git config --local user.name "github-actions[bot]"
+                    git config --local user.email "github-actions[bot]@users.noreply.github.com"
+                    if [[ -n $(git status --porcelain adr/index.md) ]]; then
+                        git add adr/index.md
+                        git commit -m "Regenerate ADR index.md [skip ci]"
+                        git push
+                    fi
