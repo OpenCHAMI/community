@@ -71,7 +71,7 @@ Benefits:
 ---
 
 **Other Options Considered:**
-No Other options considers as this is required.
+No other options considered as this is required.
 
 ---
 
