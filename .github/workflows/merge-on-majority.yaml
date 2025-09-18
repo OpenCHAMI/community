@@ -9,6 +9,7 @@ on:
     types: [synchronize, reopened, labeled]
     paths:
       - 'adr/**'
+
   workflow_dispatch:
     inputs:
       pr_number:

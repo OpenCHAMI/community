@@ -7,6 +7,7 @@ date: "2025-07-03"
 
 # ADR 000: Establish an Architecture Decision Record (ADR) Process for Documenting Key Decisions
 
+
 **Date Proposed:** 2025-07-03
 **Status:** Accepted
 
@@ -59,10 +60,11 @@ Benefits:
 
 ### Handling Low-Frequency TSC Meetings
 - Monthly meetings are too infrequent for timely decisions.
-- Suggest handling ADRs **asynchronously**, similar to [Issue #95](https://github.com/OpenCHAMI/):
-  - Maintain a board of ADRs expected to be discussed
-  - Announce new ADRs when added
-  - Require a **minimum 6-week lead time** before decisions
+- Suggest handling ADRs **asynchronously**, similar to [OpenCHAMI/roadmap#95](https://github.com/OpenCHAMI/roadmap/issues/95).
+  - Maintain a board of ADRs expected to be discussed.
+  - Announce new ADRs when added.
+  - Require a **minimum 6-week lead time** before decisions.
+
 
 ### ADR Number Reservation
 - Add instructions in the ADR README:
@@ -72,6 +74,7 @@ Benefits:
 
 **Other Options Considered:**
 No other options considered as this is required.
+
 
 ---
 
