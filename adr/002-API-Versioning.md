@@ -45,6 +45,20 @@ https://openchami.system.site/apis/smd/v2/
 
 This would allow us to reference `smd/v2` as a unit in documentation and releases, and to advertise support for specific group versions per deployment. Internally, `smd` itself would still route requests via `/v2` in its own API router.
 
+### Two-Layer Versioning System
+
+OpenCHAMI follows Kubernetes and Google's approach with two distinct versioning layers:
+
+1. **API Group Version** (in the URL path): `/apis/smd/v2/`
+2. **Resource Schema Version** (in the request/response payload): Individual resources can be served in multiple versions
+
+This separation allows the same API group endpoint to serve resources in different schema versions. For example:
+- URL remains: `GET /apis/smd/v2/components/x1001c0s0b0n0`
+- Client specifies resource version via Accept header: `Accept: application/json;version=v3beta1`
+- Server can serve the same Component resource in both `v2` and `v3beta1` schemas
+
+This design enables individual resources to evolve without requiring a new API group version.
+
 ### Integers vs alphanumeric for versions
 
 The [Google AIP-185 API Versioning](https://google.aip.dev/185) puts the major version number in the URI. The use of the term "major version number" is taken from [semantic versioning at semver.org](https://semver.org/). However, unlike in traditional semantic versioning, Google APIs must not expose minor or patch version numbers. For example, Google APIs use v1, not v1.0, v1.1, or v1.4.2. From a user's perspective, major versions are updated in place, and users receive new functionality without migration. For this reason, this RFD suggests only using the major version number in the URL.
@@ -69,15 +83,15 @@ For example:
 * The API group might be `/apis/apps/v1`
 * Within it, a `Deployment` resource might have multiple served versions (`v1`, `v1beta1`) with one storage version.
 
-Right now, a change to the `Component` resource in `smd` replacing `id` (currently an `xname`) with an opaque identifier and moving `xname` into `location` would force us to think in terms of a new API URI version.
+Right now, a change to the `Component` resource in `smd` replacing `id` (currently an `xname`) with an opaque identifier and moving `xname` into `location` would not require a new API group version.
 
-Instead, we can version resource schemas within a group API version.
+Instead, we can version resource schemas within the existing group API version:
 
 * Keep the group at `smd/v2`.
 * Internally serve `Component` in both `v2` (old schema) and `v3beta1` (new schema) for a period.
 * Persist everything in the new schema, converting for old clients as Kubernetes does for CRDs.
 
-This separation of API group version (what’s in the URI) from resource schema version (what’s in the payload) would give us more flexibility to evolve individual resources without churning the entire group version.
+This separation of API group version (what's in the URI) from resource schema version (what's in the payload) gives us flexibility to evolve individual resources without churning the entire group version.
 
 ### Code Example
 
