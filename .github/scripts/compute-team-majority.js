@@ -29,6 +29,16 @@ module.exports = async function ({ github, context, core }) {
   for (const [login, state] of latestByUser.entries()) {
     if (state === 'APPROVED' && team.has(login)) approvers.push(login);
   }
+
+
+  // Include PR author as an approver if they are a member of the team.
+  const pr = (await github.rest.pulls.get({ owner, repo, pull_number: prNum })).data;
+  const author = pr.user?.login?.toLowerCase();
+  if (author && team.has(author) && !approvers.includes(author)) {
+    approvers.push(author);
+  }
+
+
   approvers.sort((a, b) => a.localeCompare(b));
 
   const have = approvers.length;

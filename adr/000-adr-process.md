@@ -5,7 +5,8 @@ status: "Accepted"
 date: "2025-07-03"
 ---
 
-# ADR [000]: Establish an Architecture Decision Record (ADR) Process for Documenting Key Decisions
+# ADR 000: Establish an Architecture Decision Record (ADR) Process for Documenting Key Decisions
+
 
 **Date Proposed:** 2025-07-03
 **Status:** Accepted
@@ -64,6 +65,7 @@ Benefits:
   - Announce new ADRs when added.
   - Require a **minimum 6-week lead time** before decisions.
 
+
 ### ADR Number Reservation
 - Add instructions in the ADR README:
   - How to **reserve a number** by creating a branch with the number included.
@@ -71,7 +73,8 @@ Benefits:
 ---
 
 **Other Options Considered:**
-No other options considers as this is required.
+No other options considered as this is required.
+
 
 ---
 
