@@ -37,7 +37,7 @@ In Kubernetes, API groups extend the API at path levels:
 and are referenced internally via `<GROUP_NAME>/<VERSION>`.
 
 In OpenCHAMI, HAProxy already plays the role of grouping, making multiple microservices appear to be one API.
-If we treat `smd`as a single API group, the external structure could look like:
+If we treat `smd` as a single API group, the external structure could look like:
 
 ```
 https://openchami.system.site/apis/smd/v2/
