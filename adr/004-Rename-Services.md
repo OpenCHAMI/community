@@ -74,9 +74,9 @@ At the September 2025 developer summit, the TSC discussed stable naming and deci
 | --- | --- | --- | --- | --- | --- |
 | Inventory (smd) | https://github.com/OpenCHAMI/inventory | `openchami-inventory` | `ghcr.io/openchami/inventory` | None | `github.com/openchami/inventory` |
 | Configuration Service (cloud-init) | https://github.com/OpenCHAMI/configuration | `openchami-configuration` | `ghcr.io/openchami/configuration` | openchami-configuration-service${VERSION}_linux_${ARCH}.rpm | `github.com/openchami/configuration` |
-| power control | https://github.com/OpenCHAMI/power-control | `openchami-power` | `ghcr.io/openchami/power-control` | None | `github.com/OpenCHAMI/power-control` |
-| discovery | https://github.com/OpenCHAMI/discovery | `openchami-discovery` (symlinked to `magellan`) | `ghcr.io/openchami/discovery` | `openchami-discovery_${VERSION}_linux_)${ARCH}.rpm` | `github.com/OpenCHAMI/discovery` |
-| CLI | https://github.com/OpenCHAMI/ochami | `ochami` | `ghcr.io/openchami/ochami` | `ochami_${VERSION}_linux_${ARCH}.rpm` | `github.com/OpenCHAMI/ochami` |
+| power control | https://github.com/OpenCHAMI/power-control | `openchami-power` | `ghcr.io/openchami/power-control` | None | `github.com/openchami/power-control` |
+| discovery | https://github.com/OpenCHAMI/discovery | `openchami-discovery` (symlinked to `magellan`) | `ghcr.io/openchami/discovery` | `openchami-discovery_${VERSION}_linux_)${ARCH}.rpm` | `github.com/openchami/discovery` |
+| CLI | https://github.com/OpenCHAMI/ochami | `ochami` | `ghcr.io/openchami/ochami` | `ochami_${VERSION}_linux_${ARCH}.rpm` | `github.com/openchami/ochami` |
 | image-builder | https://github.com/OpenCHAMI/image-builder | `image-build` | `ghcr.io/openchami/image-builder` | None | None (python) |
 | Secure token exchange | https://github.com/OpenCHAMI/tokensmith | `openchami-tokensmith` | None | None | `github.com/openchami/tokensmith` |
 | CoreDNS Plugin | https://github.com/OpenCHAMI/coredns-plugin | None |None | None | `github.com/openchami/coredns-plugin/openchami-inventory` |
