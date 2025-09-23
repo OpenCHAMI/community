@@ -79,8 +79,8 @@ At the September 2025 developer summit, the TSC discussed stable naming and deci
 | CLI | https://github.com/OpenCHAMI/ochami | `ochami` | `ghcr.io/openchami/ochami` | `ochami_${VERSION}_linux_${ARCH}.rpm` | `github.com/OpenCHAMI/ochami` |
 | image-builder | https://github.com/OpenCHAMI/image-builder | `image-build` | `ghcr.io/openchami/image-builder` | None | None (python) |
 | Secure token exchange | https://github.com/OpenCHAMI/tokensmith | `openchami-tokensmith` | None | None | `github.com/openchami/tokensmith` |
-| CoreDNS Plugin | https://github.com/OpenCHAMI/coredns-plugin | None | None | `github.com/openchami/coredns-plugin/openchami-inventory` |
-| CoreDHCP Plugin | https://github.com/OpenCHAMI/coredhcp-plugin | None | None | `github.com/openchami/coredhcp-plugin/openchami-inventory` | 
+| CoreDNS Plugin | https://github.com/OpenCHAMI/coredns-plugin | None |None | None | `github.com/openchami/coredns-plugin/openchami-inventory` |
+| CoreDHCP Plugin | https://github.com/OpenCHAMI/coredhcp-plugin | None | None | None | `github.com/openchami/coredhcp-plugin/openchami-inventory` | 
 | Remote Console| https://github.com/OpenCHAMI/remote-console | `openchami-console` | `ghcr.io/openchami/remote-console:2.11` | None | `github.com/openchami/remote-console` |
 | Boot (bss) | https://github.com/OpenCHAMI/boot-service | `openchami-boot` | `ghcr.io/openchami/boot` | None | `github.com/openchami/boot` |
 | configurator | https://github.com/OpenCHAMI/configurator | `openchami-configurator` | `ghcr.io/openchami/configurator` | None | `github.com/openchami/configurator` |
