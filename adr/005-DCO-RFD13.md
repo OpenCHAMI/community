@@ -12,7 +12,7 @@
 - [@rainest](https://github.com/rainest)  
 - [@trcotton](https://github.com/trcotton)
 - [@adamhough](https://github.com/adamhough)
-- Atif Ali
+- [@atifsyedali](Atif Ali)
 - Sadaf Alam
 - [@jsollom-hpe](https://github.com/jsollom-hpe)
 - [@jvd10](https://github.com/jvd10)
