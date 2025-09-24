@@ -22,13 +22,21 @@
 
 ## Context
 
-API versioning is needed to support resource evolution while maintaining backward compatibility. Several API version schemes have been proposed, but the ones used by Kubernetes and Google APIs more closely match what OpenCHAMI needs.
+The REST APIs in the OpenCHAMI project are primarily inherited from the MIT-licensed code released by HPE as part of CSM.  As we evolve the microservices and APIs, we will need to make breaking changes which invalidate some assumptions of CSM clients.  Because of the way API versioning was handled in CSM, any breaking changes necessitate a major API version change at what we will describe in this ADR as "the group level" which may span multiple microservices.  There is no concept in the APIs or microservices for gradual evolution in which clients can opt-in to new functionality before it becomes a permanent change.
+
+The TSC is contemplating several changes to the schema structures of various resources within OpenCHAMI and wants to outline the process for gradual evolutiuon before embarking on potentially incompatible changes.
+
+OpenCHAMI is not the first project to contemplate these kinds of changes and can draw on expertise from other entities that have published their own reasoning and guidance for their own API-Versioning schemes.
+
+## Decision
+
+After reviewing several possibilities and discussing the issue in person at the Developer summit in September of 2025, we have decided to follow a two-layer versioning system in which both the API group version and the resource schema version are pertinent.  This decision is informed heavily by the [Kubernetes API Versioning Reference](https://kubernetes.io/docs/reference/using-api/#api-versioning).
 
 ### Two-Layer Versioning System
 
-OpenCHAMI follows Kubernetes and Google’s approach with two distinct versioning layers:
+OpenCHAMI follows the Kubernetes approach with two distinct versioning layers:
 
-1. **API Group Version** (in the URL path): /apis/smd/v2/
+1. **API Group Version** (in the URL path): `/apis/inventory/v2/`
 
    - Declares the release of the group as a whole.
    - Not a minimum or uniform bound on resources.
@@ -40,46 +48,38 @@ OpenCHAMI follows Kubernetes and Google’s approach with two distinct versionin
 
 This separation allows the same API group endpoint to serve resources in different schema versions. For example:
 
-- URL remains: `GET /apis/smd/v3/components/x1001c0s0b0n0`
+- URL remains: `GET /apis/inventory/v3/components/x1001c0s0b0n0`
 - Client specifies resource version via Accept header: `Accept: application/json;version=v3beta1`
 - Server can serve the same Component resource in both `v2` and `v3beta1` schemas
 
-**NB** In OpenCHAMI terms, we are considering a change to the Component resource to allow the `Id` field to reference non-xname ids.  In the current API Versioning scheme, this change would require moving from v2 to v3 immediately.  With two-level versioning in place, the new Component can be made available as a beta Resource without changing the full group version.  As long as the current v2 behavior is supported as the default in the API, there is no breaking change.
-
 This design enables individual resources to evolve without requiring a new API group version.
 
-#### API Group Versioning
+### Group Level Versioning
 
-In Kubernetes, API groups extend the API at path levels:
+A group of APIs under a certian url structure are represented together with a version number in the url. i.e: `/inventory/v2`.  The `v2` indicator in this url describes the version of the API.  The group version indicates the stable collection of resources and behavior of those resources within a set of child URLS.
 
-```
-/apis/<GROUP_NAME>/<VERSION>
-```
+### Resource Level Versioning
 
-and are referenced internally via `<GROUP_NAME>/<VERSION>`.
+Within a versioned group are a set of resources that each have a default version within the group.  The resources themselves do not include their version in the url.  Instead, they include their version within the resource itself in a `schemaVersion` field.  Note that the group version should also be included in the resource schema.
 
-In OpenCHAMI, HAProxy already plays the role of grouping, making multiple microservices appear to be one API.
-If we treat `smd` as a single API group, `v2` indicator in the url below indicates that the second stable version of the smd api is present at the url.
+## Request Header Versioning
 
-```
-https://openchami.system.site/apis/smd/v2/
-```
+Clients communicating with a REST API that wish to select a non-standard resource version need a way of indicating what they prefer.  While the header alone is not sufficient for versioning, it is a useful way to indicate intent.
 
-This would allow us to reference `smd/v2` as a unit in documentation and releases, and to advertise support for specific group versions per deployment. Internally, `smd` itself would still route requests via `/v2` in its own API router.
+The `Accept:` header will be used for a client indicating to a server that a specific schema version is requested.
+The `Content-Type:` header will be used to describe the content being sent.  This include responses from servers as well as payloads delivered by clients
 
-#### Resource-Level Versioning
+When these headers do not exist, or do not include information about schemas, the server and client can both assume the default schemaVersion for the resource.
 
-In Kubernetes as well as in the linked Google AIP-185 below, versioning happens at the resource schema level as well as the API group version.
+- [The Right and Wrong Way to Version Your APIs](https://www.beyondthesemicolon.com/the-right-and-wrong-way-to-version-your-apis/)
+- [RESTful API Versioning](https://restfulapi.net/versioning/)
+- [A Comprehensive Guide to API Versioning: Paths, Queries, and Headers](https://hackernoon.com/a-comprehensive-guide-to-api-versioning-paths-queries-and-headers)
 
-For example:
+## Integers vs alphanumeric for indicating stability of versions
 
-- The API group might be `/apis/apps/v1`
-- Within it, a `Deployment` resource might have multiple served versions (`v1`, `v1beta1`) with one storage version.
-- There is no presumption that resource versioning is tied in any way to group versioning.  It is totally permissable for a `v3` group API to contain schemas for resources at `v1` or even `v17`
+The [Google AIP-185 API Versioning](https://google.aip.dev/185) puts the major version number in the URI. The use of the term "major version number" is taken from [semantic versioning at semver.org](https://semver.org/). However, unlike in traditional semantic versioning, Google APIs must not expose minor or patch version numbers. For example, Google APIs use v1, not v1.0, v1.1, or v1.4.2. From a user's perspective, major versions are updated in place, and users receive new functionality without migration. 
 
-### Integers vs alphanumeric for versions
-
-The [Google AIP-185 API Versioning](https://google.aip.dev/185) puts the major version number in the URI. The use of the term "major version number" is taken from [semantic versioning at semver.org](https://semver.org/). However, unlike in traditional semantic versioning, Google APIs must not expose minor or patch version numbers. For example, Google APIs use v1, not v1.0, v1.1, or v1.4.2. From a user's perspective, major versions are updated in place, and users receive new functionality without migration. For this reason, this RFD suggests only using the major version number in the URL.
+We agree with the reasoning from Google on this and have decided only to use the major version number in the URL.
 
 Kubernetes distinguishes stable vs. unstable APIs by version naming:
 
@@ -87,106 +87,25 @@ Kubernetes distinguishes stable vs. unstable APIs by version naming:
 - `v2beta3` → beta (pre-release for v2)
 - `v3alpha1` → alpha (experimental)
 
-We currently only use whole integers. Borrowing Kubernetes’ pattern would let us signal stability to clients, for example:
+We agree with this reasoning as well and extend it to both group and resource naming.
 
-- smd/v3beta1 → try it now, but expect breaking changes before v3
-- smd/v3alpha1 → highly experimental
-
-### Code Example
-
-```go
-package main
-
-import (
-	"encoding/json"
-	"fmt"
-	"log"
-	"net/http"
-	"strings"
-	"sync"
-)
-
-// ---------- Resource versions ----------
-
-// Legacy schema (clients still use this)
-// apiVersion: smd.openchami.io/v2
-type ComponentV2 struct {
-	APIVersion string `json:"apiVersion"` // "smd.openchami.io/v2"
-	Kind       string `json:"kind"`       // "Component"
-	ID         string `json:"id"`         // xname-as-id (legacy)
-	// ... other legacy fields ...
-}
-
-// New/storage schema (what we persist)
-// apiVersion: smd.openchami.io/v3beta1
-type ComponentV3 struct {
-	APIVersion string          `json:"apiVersion"` // "smd.openchami.io/v3beta1"
-	Kind       string          `json:"kind"`       // "Component"
-	ID         string          `json:"id"`         // opaque id
-	Location   ComponentLoc    `json:"location"`   // holds xname
-	// ... evolved fields ...
-}
-type ComponentLoc struct {
-	XName string `json:"xname"`
-}
-
-// ---------- Converters (hub-and-spoke style) ----------
-
-func (v2 *ComponentV2) ToV3(storageID string) ComponentV3 {
-	// storageID is the opaque id we mint/lookup for this xname
-	return ComponentV3{
-		APIVersion: "smd.openchami.io/v3beta1",
-		Kind:       "Component",
-		ID:         storageID,
-		Location:   ComponentLoc{XName: v2.ID},
-	}
-}
-
-func (v3 *ComponentV3) ToV2() ComponentV2 {
-	return ComponentV2{
-		APIVersion: "smd.openchami.io/v2",
-		Kind:       "Component",
-		ID:         v3.Location.XName, // surface xname as "id" for legacy clients
-	}
-}
-```
-
-## Decision
-
-Versioning of APIs will be done using the Kubernetes API versioning scheme with release-based versioning.
-
-See Kubernetes API versioning. [Kubernetes API Versioning](https://kubernetes.io/docs/reference/using-api/#api-versioning)
-
-See Release-based versioning as described by Google API Versioning. [Google AIP-185 API Versioning](https://google.aip.dev/185) 
+- `inventory/v3beta1` -> try it now, but expect breaking changes before v3
+- `inventory/v3alpha1` -> highly experimental
+- `schemaVersion: v3` -> stable
+- `schemaVersion: v4alpha3` -> highly experimental
 
 ## Other Options Considered
 
-### Channel-based Versioning
+### Channel and Release based Versioning
 
-The Kubernetes/Google API Channel-based versioning is an alternative to the Kubernetes/Google API Release-based versioning which has only three channels: stable, beta, and alpha (expermental). See [Google AIP-185 API Versioning](https://google.aip.dev/185) for more comparision of these two different versioning methods.
-
-### Request Header Versioning
-
-The version could be specified in the request HEADER.
-Example: `GET /users` with header `Accept: application/vnd.myapi.v2+json`
-
-Pros:
-
-- Clean URLs.
-- Can support multiple representations or minor variations.
-- Encouraged in REST-style APIs.
-
-Cons:
-
-- Harder for humans to discover.
-- Not cache-friendly.
-- Poor support in some tools or proxies.
+[Google AIP-185 API Versioning](https://google.aip.dev/185) describes both release and channel-based versioning and advocates for channel-based.  Both require significant coordination among microservice developers and appear better suited for large, stable API surfaces than those still evolving.
 
 ## Consequences
 
-Some of the existing services in OpenCHAMI may need to be updated to handle the range of new version strings for the APIs which are part of [OpenCHAMI roadmap issue #78](https://github.com/OpenCHAMI/roadmap/issues/78) and this ADR.
-
-The CLI tools (`ochami` and `manta`) which communicate with the OpenCHAMI APIs will need to be updated to use the stable version of the APIs or, where appropriate, a beta or alpha version to explore the different API versions and the capability of the services providing the API groups.
+- Existing microservices will need to transition to the new versioning system before we can declare OpenCHAMI ready for a 1.0 release.
+- Clients like `ochami` and `manta` will need to accommodate the updates as new urls and schemas become available.
+- OpenCHAMI will need to describe a standard schema template for existing and new resources.
+- OpenCHAMI TSC will need to define the format of HTTP Headers before this ADR can be accepted.
 
 ## Non-Goals
 
@@ -198,7 +117,34 @@ Not applicable
 
 ## Notes
 
-Not applicable
+This ADR describes the decision, but does not prescribe implementation.  The following notes may be useful for discussing future implementation choices.
+
+### Example Schema Gist
+
+```json
+{
+  "apiVersion": "inventory/v2",          // group-level version (set in the URL too)
+  "kind": "Node",                        // resource type
+  "schemaVersion": "v3",                 // resource-level schema version (evolves per-kind)
+  "metadata": {
+    "name": "node47",
+    "uid": "a0f3…",
+    "labels": { "site": "west1", "tier": "prod" },
+    "annotations": { "owner": "team-ops" },
+    "createdAt": "2025-09-11T00:00:00Z",
+    "updatedAt": "2025-09-24T00:00:00Z",
+  },
+  "spec": { /* desired state */ },
+  "status": { /* observed state */}
+}
+```
+
+### Accept and Content-Type Header options
+
+1. application/vnd.inventory.component+json;v=v1alpha1 <-- `<Group>.<Resource>+representation;v=version`
+2. application/json; profile="https://schemas.example.com/inventory/component/v1alpha1" <-- Public profile schema in jsonSchema format
+
+The first option is more common.  The second option is harder to maintain, but easier for users to troubleshoot/lint.
 
 ## References
 
