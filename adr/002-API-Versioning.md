@@ -155,7 +155,7 @@ func (v3 *ComponentV3) ToV2() ComponentV2 {
 
 Versioning of APIs will be done using the Kubernetes API versioning scheme with release-based versioning.
 
-See Kubernetes API versioning. [Kubernetes API Versioning](https://kubernetes.io/docs/reference/using-api/?utm_source=chatgpt.com#api-versioning)
+See Kubernetes API versioning. [Kubernetes API Versioning](https://kubernetes.io/docs/reference/using-api/#api-versioning)
 
 See Release-based versioning as described by Google API Versioning. [Google AIP-185 API Versioning](https://google.aip.dev/185) 
 
