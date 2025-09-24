@@ -24,9 +24,30 @@
 
 API versioning is needed to support resource evolution while maintaining backward compatibility. Several API version schemes have been proposed, but the ones used by Kubernetes and Google APIs more closely match what OpenCHAMI needs.
 
-Versioning will be done on a resource basis. Each resource-collection will be versioned as opposed to the entire API being versioned. This composability allows changes to individual resources without affecting the remainder of the API.
+### Two-Layer Versioning System
 
-### API Groups
+OpenCHAMI follows Kubernetes and Google’s approach with two distinct versioning layers:
+
+1. **API Group Version** (in the URL path): /apis/smd/v2/
+
+   - Declares the release of the group as a whole.
+   - Not a minimum or uniform bound on resources.
+
+2. **Resource Schema Version** (in the request/response payload):
+
+   - Individual resources can be served in multiple versions at once.
+   - Group version and resource version do not move in lockstep.
+
+This separation allows the same API group endpoint to serve resources in different schema versions. For example:
+- URL remains: `GET /apis/smd/v3/components/x1001c0s0b0n0`
+- Client specifies resource version via Accept header: `Accept: application/json;version=v3beta1`
+- Server can serve the same Component resource in both `v2` and `v3beta1` schemas
+
+__NB__ In OpenCHAMI terms, we are considering a change to the Component resource to allow the `Id` field to reference non-xname ids.  In the current API Versioning scheme, this change would require moving from v2 to v3 immediately.  With two-level versioning in place, the new Component can be made available as a beta Resource without changing the full group version.  As long as the current v2 behavior is supported as the default in the API, there is no breaking change.
+
+This design enables individual resources to evolve without requiring a new API group version.
+
+#### API Group Versioning
 
 In Kubernetes, API groups extend the API at path levels:
 
@@ -37,7 +58,7 @@ In Kubernetes, API groups extend the API at path levels:
 and are referenced internally via `<GROUP_NAME>/<VERSION>`.
 
 In OpenCHAMI, HAProxy already plays the role of grouping, making multiple microservices appear to be one API.
-If we treat `smd` as a single API group, the external structure could look like:
+If we treat `smd` as a single API group, `v2` indicator in the url below indicates that the second stable version of the smd api is present at the url.
 
 ```
 https://openchami.system.site/apis/smd/v2/
@@ -45,19 +66,18 @@ https://openchami.system.site/apis/smd/v2/
 
 This would allow us to reference `smd/v2` as a unit in documentation and releases, and to advertise support for specific group versions per deployment. Internally, `smd` itself would still route requests via `/v2` in its own API router.
 
-### Two-Layer Versioning System
 
-OpenCHAMI follows Kubernetes and Google's approach with two distinct versioning layers:
+#### Resource-Level Versioning
 
-1. **API Group Version** (in the URL path): `/apis/smd/v2/`
-2. **Resource Schema Version** (in the request/response payload): Individual resources can be served in multiple versions
+In Kubernetes as well as in the linked Google AIP-185 below, versioning happens at the resource schema level as well as the API group version.
 
-This separation allows the same API group endpoint to serve resources in different schema versions. For example:
-- URL remains: `GET /apis/smd/v2/components/x1001c0s0b0n0`
-- Client specifies resource version via Accept header: `Accept: application/json;version=v3beta1`
-- Server can serve the same Component resource in both `v2` and `v3beta1` schemas
+For example:
 
-This design enables individual resources to evolve without requiring a new API group version.
+* The API group might be `/apis/apps/v1`
+* Within it, a `Deployment` resource might have multiple served versions (`v1`, `v1beta1`) with one storage version.
+* There is no presumption that resource versioning is tied in any way to group versioning.  It is totally permissable for a `v3` group API to contain schemas for resources at `v1` or even `v17`
+
+
 
 ### Integers vs alphanumeric for versions
 
@@ -74,24 +94,7 @@ We currently only use whole integers. Borrowing Kubernetes’ pattern would let 
 * smd/v3beta1 → try it now, but expect breaking changes before v3
 * smd/v3alpha1 → highly experimental
 
-### Resource-Level Versioning
 
-Kubernetes versioning happens at the resource schema level as well as the API group version.
-
-For example:
-
-* The API group might be `/apis/apps/v1`
-* Within it, a `Deployment` resource might have multiple served versions (`v1`, `v1beta1`) with one storage version.
-
-Right now, a change to the `Component` resource in `smd` replacing `id` (currently an `xname`) with an opaque identifier and moving `xname` into `location` would not require a new API group version.
-
-Instead, we can version resource schemas within the existing group API version:
-
-* Keep the group at `smd/v2`.
-* Internally serve `Component` in both `v2` (old schema) and `v3beta1` (new schema) for a period.
-* Persist everything in the new schema, converting for old clients as Kubernetes does for CRDs.
-
-This separation of API group version (what's in the URI) from resource schema version (what's in the payload) gives us flexibility to evolve individual resources without churning the entire group version.
 
 ### Code Example
 
