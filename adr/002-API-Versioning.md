@@ -203,7 +203,7 @@ Not applicable
 ## References
 
 - [Kubernetes Release Versioning](https://github.com/kubernetes/sig-release/blob/master/release-engineering/versioning.md)
-- [Kubernetes API Versioning](https://kubernetes.io/docs/reference/using-api/?utm_source=chatgpt.com#api-versioning)
+- [Kubernetes API Versioning](https://kubernetes.io/docs/reference/using-api/#api-versioning)
 - [Google AIP-185 API Versioning](https://google.aip.dev/185)
 - [OpenCHAMI roadmap issue #78](https://github.com/OpenCHAMI/roadmap/issues/78)
 - [IETF RFC 7231 - Hypertext Transfer Protocol (HTTP/1.1): Semantics and Content, specifically the Accept header](https://datatracker.ietf.org/doc/html/rfc7231#section-5.3.2)
