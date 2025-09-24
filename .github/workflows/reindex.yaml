@@ -22,6 +22,7 @@ jobs:
               with:
                     command: index
                     directory: adr
+                    out: "adr/README.md"
 
             - name: Commit and push changes
               run: |
@@ -29,6 +30,6 @@ jobs:
                     git config --local user.email "github-actions[bot]@users.noreply.github.com"
                     if [[ -n $(git status --porcelain adr/index.md) ]]; then
                         git add adr/index.md
-                        git commit -m "Regenerate ADR index.md [skip ci]"
+                        git commit -m "Regenerate ADR README.md [skip ci]"
                         git push
                     fi
