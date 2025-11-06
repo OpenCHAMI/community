@@ -1,0 +1,191 @@
+name: Weekly OpenCHAMI Digest → Website PR
+
+on:
+  schedule:
+    # Mondays 09:00 America/Denver (16:00 UTC most of the year)
+    - cron: "0 16 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pull-requests: write
+  issues: write
+  models: read
+
+env:
+  ORG: OpenCHAMI
+  WEBSITE_REPO: OpenCHAMI/openchami.org
+  POST_DIR: content/posts/weekly
+  LOCAL_TZ: America/Denver
+  POST_TIME: "09:00:00"   # local publish time in the Hugo front matter
+  MODEL_ID: openai/gpt-4.1-mini
+
+jobs:
+  weekly_digest:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout (community repo context)
+        uses: actions/checkout@v4
+
+      - name: Install GitHub CLI + models extension
+        run: |
+          sudo apt-get update && sudo apt-get install -y jq
+          gh extension install github/gh-models
+        env:
+          GH_TOKEN: ${{ github.token }}
+
+      - name: Compute dates (Denver-local & UTC)
+        id: dates
+        run: |
+          # Past 7 days window (UTC for queries)
+          SINCE_UTC=$(date -u -d "7 days ago" +"%Y-%m-%d")
+          NOW_UTC=$(date -u +"%Y-%m-%d")
+
+          # Publication date/time in local tz for Hugo front matter & filenames
+          export TZ="${LOCAL_TZ}"
+          PUB_DATE=$(date +"%Y-%m-%d")
+          PUB_YEAR=$(date +"%Y")
+          PUB_MONTH=$(date +"%m")
+          PUB_ISO_LOCAL="${PUB_DATE}T${POST_TIME}"
+
+          # Pretty range for title
+          RANGE_START_PRETTY=$(date -d "7 days ago" +"%b %d")
+          RANGE_END_PRETTY=$(date +"%b %d, %Y")
+
+          echo "since_utc=$SINCE_UTC" >> $GITHUB_OUTPUT
+          echo "now_utc=$NOW_UTC" >> $GITHUB_OUTPUT
+          echo "pub_date=$PUB_DATE" >> $GITHUB_OUTPUT
+          echo "pub_year=$PUB_YEAR" >> $GITHUB_OUTPUT
+          echo "pub_month=$PUB_MONTH" >> $GITHUB_OUTPUT
+          echo "pub_iso_local=$PUB_ISO_LOCAL" >> $GITHUB_OUTPUT
+          echo "range_start=$RANGE_START_PRETTY" >> $GITHUB_OUTPUT
+          echo "range_end=$RANGE_END_PRETTY" >> $GITHUB_OUTPUT
+
+      - name: Collect org activity → activity.json
+        run: |
+          set -e
+          ORG="${ORG}"
+          SINCE="${{ steps.dates.outputs.since_utc }}"
+
+          # Issues updated in last 7 days
+          gh search issues "org:$ORG updated:>$SINCE" \
+            --json title,number,repository,author,createdAt,updatedAt,state,labels,url > issues.json
+
+          # PRs updated/merged in last 7 days
+          gh search prs "org:$ORG updated:>$SINCE" \
+            --json title,number,repository,author,createdAt,updatedAt,mergedAt,state,labels,url > prs.json
+
+          # Releases created in last 7 days (via search API)
+          gh api -H "Accept: application/vnd.github+json" \
+            "/search/issues?q=org:$ORG+is:release+created:>$SINCE" > releases.json || echo '{}' > releases.json
+
+          # Public org events (best effort)
+          gh api "/orgs/$ORG/events" > events.json || echo '[]' > events.json
+
+          jq -n \
+            --slurpfile issues issues.json \
+            --slurpfile prs prs.json \
+            --slurpfile releases releases.json \
+            --slurpfile events events.json \
+            '{issues:$issues[0], prs:$prs[0], releases:$releases[0], events:$events[0]}' \
+            > activity.json
+        env:
+          GH_TOKEN: ${{ github.token }}
+
+      - name: Write prompt file
+        run: |
+          mkdir -p prompts
+          cat > prompts/digest.prompt.yml <<'YML'
+          name: Weekly Org Digest
+          description: Summarize OpenCHAMI org activity for new users and contributors.
+          model: ${MODEL_ID}
+          messages:
+            - role: system
+              content: >
+                You are a technical writer + developer marketer.
+                Create a concise, skimmable weekly digest in Markdown.
+                Sections: Highlights, New & Notable PRs, Issues to Watch, Releases, Contributor Thanks.
+                Link to items. Prefer user-facing language. Avoid internal jargon.
+                End with "What’s next" suggestions and 3–5 proposed blog titles.
+            - role: user
+              content: >
+                Here is JSON of activity across the org for the last 7 days.
+                Extract themes (user value), group by repo when helpful,
+                and surface at most 10 bullets in Highlights.
+                Data:\n{{input}}
+          YML
+
+      - name: Generate digest (Markdown) with GitHub Models → DIGEST.md
+        run: |
+          cat activity.json | gh models run --file prompts/digest.prompt.yml > DIGEST.md
+        env:
+          GH_TOKEN: ${{ github.token }}
+
+      - name: Build Hugo post content → POST.md
+        id: post
+        run: |
+          set -e
+          TITLE="OpenCHAMI Weekly Digest: ${{ steps.dates.outputs.range_start }}–${{ steps.dates.outputs.range_end }}"
+          SLUG="weekly-digest-${{ steps.dates.outputs.pub_date }}"
+          FRONTMATTER=$(cat <<EOF
+          ---
+          title: "${TITLE}"
+          date: "${{ steps.dates.outputs.pub_iso_local }}"
+          slug: "${SLUG}"
+          tags: ["weekly", "updates", "openchami"]
+          draft: false
+          ---
+          EOF
+          )
+          echo "${FRONTMATTER}" > POST.md
+          echo "" >> POST.md
+          cat DIGEST.md >> POST.md
+
+          # Output for later steps
+          echo "title=${TITLE}" >> $GITHUB_OUTPUT
+          echo "slug=${SLUG}" >> $GITHUB_OUTPUT
+
+      - name: Clone website repo (openchami.org)
+        run: |
+          git clone "https://x-access-token:${WEBSITE_REPO_TOKEN}@github.com/${WEBSITE_REPO}.git" website
+        env:
+          WEBSITE_REPO_TOKEN: ${{ secrets.WEBSITE_REPO_TOKEN }}
+
+      - name: Create post file, branch, commit, and push
+        id: prprep
+        run: |
+          set -e
+          BRANCH="weekly-digest/${{ steps.dates.outputs.pub_date }}"
+          POST_PATH="website/${POST_DIR}/${{ steps.dates.outputs.pub_date }}.md"
+
+          mkdir -p "website/${POST_DIR}"
+          cp POST.md "${POST_PATH}"
+
+          cd website
+          git config user.name "openchami-bot"
+          git config user.email "bot@openchami.org"
+          git checkout -b "$BRANCH"
+          git add "${POST_PATH}"
+          git commit -m "feat(blog): add ${{ steps.post.outputs.title }}"
+          git push --set-upstream origin "$BRANCH"
+
+          echo "branch=$BRANCH" >> $GITHUB_OUTPUT
+          echo "post_path=$POST_PATH" >> $GITHUB_OUTPUT
+
+      - name: Open PR to website repo
+        run: |
+          gh pr create \
+            --repo "${WEBSITE_REPO}" \
+            --base main \
+            --head "${{ steps.prprep.outputs.branch }}" \
+            --title "${{ steps.post.outputs.title }}" \
+            --body "This PR adds the weekly digest post generated on ${{ steps.dates.outputs.pub_date }}.
+
+          - Post path: \`${{ steps.prprep.outputs.post_path }}\`
+          - Slug: \`${{ steps.post.outputs.slug }}\`
+
+          Please review copy and publish.
+          "
+        env:
+          GH_TOKEN: ${{ secrets.WEBSITE_REPO_TOKEN }}
