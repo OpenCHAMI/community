@@ -183,10 +183,11 @@ jobs:
       - name: Generate digest (Markdown) with GitHub Models → DIGEST.md
         run: |
           set -Eeuo pipefail
-          gh models run --model "$MODEL_ID" --file prompts/digest.prompt.yml < activity.json > DIGEST.md
+          gh models run --org "$ORG" "$MODEL_ID" --file prompts/digest.prompt.yml < activity.json > DIGEST.md
         env:
           GH_TOKEN: ${{ github.token }}
           MODEL_ID: ${{ env.MODEL_ID }}
+          ORG: ${{ env.ORG }}
 
       - name: Build Hugo post content → POST.md
         id: post
