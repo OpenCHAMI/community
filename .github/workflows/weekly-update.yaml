@@ -88,11 +88,11 @@ jobs:
             echo "Issues query: $Q_ISSUES"
             echo "PRs query:    $Q_PRS"
 
-            gh search issues --limit 2000 \
+            gh search issues --limit 900 \
             --json title,number,repository,author,createdAt,updatedAt,state,labels,url \
             -- "$Q_ISSUES" > issues.json
 
-            gh search prs --limit 2000 \
+            gh search prs --limit 900 \
             --json title,number,repository,author,createdAt,updatedAt,mergedAt,state,labels,url \
             -- "$Q_PRS" > prs.json
 
