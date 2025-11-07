@@ -67,7 +67,7 @@ jobs:
             # One issue result via REST Search API
             gh api -H "Accept: application/vnd.github+json" \
               "/search/issues?q=org:${ORG}+is:issue+is:public&per_page=1" \
-              jq '{count:.total_count, sample: (.items[0] | {title, html_url, repository_url})}'
+              | jq '{count:.total_count, sample: (.items[0] | {title, html_url, repository_url})}'
 
 
 
