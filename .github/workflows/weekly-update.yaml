@@ -65,7 +65,7 @@ jobs:
             gh api "/orgs/${ORG}/repos?per_page=5&type=public" | jq '.[].full_name'
 
             echo "==> Single search sanity (issues)"
-            gh search issues "org:${ORG} updated:>${SINCE} is:public" \
+            gh search issues "org:${ORG} is:public" \
             --limit 1 \
             --json title,repository,url | jq
 
