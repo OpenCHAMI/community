@@ -9,7 +9,6 @@ on:
 permissions:
   contents: read
   pull-requests: write
-  issues: write
   models: read
 
 env:
@@ -34,6 +33,19 @@ jobs:
           gh extension install github/gh-models
         env:
           GH_TOKEN: ${{ github.token }}
+
+      - name: Verify org-level token is available
+        env:
+          GH_TOKEN: ${{ secrets.ORG_READ_TOKEN }}
+        run: |
+            set -euo pipefail
+            if [[ -z "${GH_TOKEN:-}" ]]; then
+              echo "ORG_READ_TOKEN is not available to this workflow."
+              exit 1
+            fi
+            # Lightweight call that should succeed with a fine-grained PAT that can read public repos
+            gh api "/rate_limit" >/dev/null
+            echo "ORG_READ_TOKEN present and usable."
 
       - name: Compute dates (Denver-local & UTC)
         id: dates
@@ -69,11 +81,11 @@ jobs:
           SINCE="${{ steps.dates.outputs.since_utc }}"
 
           # Issues updated in last 7 days
-          gh search issues "org:$ORG updated:>$SINCE" \
+          gh search issues "org:$ORG is:public updated:>$SINCE" \
             --json title,number,repository,author,createdAt,updatedAt,state,labels,url > issues.json
 
           # PRs updated/merged in last 7 days
-          gh search prs "org:$ORG updated:>$SINCE" \
+          gh search prs "org:$ORG is:public updated:>$SINCE" \
             --json title,number,repository,author,createdAt,updatedAt,mergedAt,state,labels,url > prs.json
 
           # Releases created in last 7 days (via search API)
@@ -91,7 +103,8 @@ jobs:
             '{issues:$issues[0], prs:$prs[0], releases:$releases[0], events:$events[0]}' \
             > activity.json
         env:
-          GH_TOKEN: ${{ github.token }}
+          GH_TOKEN: ${{ secrets.ORG_READ_TOKEN }}
+          ORG: ${{ env.ORG }}
 
       - name: Write prompt file
         run: |
@@ -99,7 +112,6 @@ jobs:
           cat > prompts/digest.prompt.yml <<'YML'
           name: Weekly Org Digest
           description: Summarize OpenCHAMI org activity for new users and contributors.
-          model: ${MODEL_ID}
           messages:
             - role: system
               content: >
@@ -118,9 +130,11 @@ jobs:
 
       - name: Generate digest (Markdown) with GitHub Models → DIGEST.md
         run: |
-          cat activity.json | gh models run --file prompts/digest.prompt.yml > DIGEST.md
+          set -Eeuo pipefail
+          gh models run --model "$MODEL_ID" --file prompts/digest.prompt.yml < activity.json > DIGEST.md
         env:
           GH_TOKEN: ${{ github.token }}
+          MODEL_ID: ${{ env.MODEL_ID }}
 
       - name: Build Hugo post content → POST.md
         id: post
