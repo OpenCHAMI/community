@@ -46,7 +46,7 @@ jobs:
             # Lightweight call that should succeed with a fine-grained PAT that can read public repos
             gh api "/rate_limit" >/dev/null
             echo "ORG_READ_TOKEN present and usable."
-            
+
       - name: Debug token + org visibility
         env:
             GH_TOKEN: ${{ secrets.ORG_READ_TOKEN }}
@@ -65,7 +65,8 @@ jobs:
             gh api "/orgs/${ORG}/repos?per_page=5&type=public" | jq '.[].full_name'
 
             echo "==> Single search sanity (issues)"
-            gh search issues --limit 1 -- "org:${ORG} updated:>$(date -u -d '7 days ago' +%Y-%m-%d) is:public" \
+            gh search issues "org:${ORG} updated:>${SINCE} is:public" \
+            --limit 1 \
             --json title,repository,url | jq
 
 
@@ -110,13 +111,14 @@ jobs:
             echo "Issues query: $Q_ISSUES"
             echo "PRs query:    $Q_PRS"
 
-            gh search issues --limit 900 \
-            --json title,number,repository,author,createdAt,updatedAt,state,labels,url \
-            -- "$Q_ISSUES" > issues.json
+            gh search issues "org:${ORG} updated:>${SINCE} is:public" \
+            --limit 1000 \
+            --json title,number,repository,author,createdAt,updatedAt,state,labels,url > issues.json
 
-            gh search prs --limit 900 \
-            --json title,number,repository,author,createdAt,updatedAt,mergedAt,state,labels,url \
-            -- "$Q_PRS" > prs.json
+            gh search prs "org:${ORG} updated:>${SINCE} is:public" \
+            --limit 1000 \
+            --json title,number,repository,author,createdAt,updatedAt,mergedAt,state,labels,url > prs.json
+
 
             # (Optional) releases + events (kept as-is)
             gh api -H "Accept: application/vnd.github+json" \
