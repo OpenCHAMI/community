@@ -64,10 +64,11 @@ jobs:
             echo "==> List first 5 repos visible to this token"
             gh api "/orgs/${ORG}/repos?per_page=5&type=public" | jq '.[].full_name'
 
-            echo "==> Single search sanity (issues)"
-            gh search issues "org:${ORG} is:public" \
-            --limit 1 \
-            --json title,repository,url | jq
+            # One issue result via REST Search API
+            gh api -H "Accept: application/vnd.github+json" \
+              "/search/issues?q=org:${ORG}+is:issue+is:public&per_page=1" \
+              jq '{count:.total_count, sample: (.items[0] | {title, html_url, repository_url})}'
+
 
 
       - name: Compute dates (Denver-local & UTC)
@@ -97,7 +98,7 @@ jobs:
           echo "range_start=$RANGE_START_PRETTY" >> $GITHUB_OUTPUT
           echo "range_end=$RANGE_END_PRETTY" >> $GITHUB_OUTPUT
 
-      - name: Collect org activity → activity.json
+      - name: Collect org activity → activity.json (REST + pagination)
         env:
             GH_TOKEN: ${{ secrets.ORG_READ_TOKEN }}
             ORG: ${{ env.ORG }}
@@ -105,26 +106,42 @@ jobs:
             set -Eeuo pipefail
             SINCE="${{ steps.dates.outputs.since_utc }}"
 
-            Q_ISSUES="org:${ORG} updated:>${SINCE} is:public"
-            Q_PRS="org:${ORG} updated:>${SINCE} is:public"
+            # ---- Search Issues (REST with pagination)
+            : > issues.jsonl
+            for PAGE in $(seq 1 10); do
+            RES=$(gh api -H "Accept: application/vnd.github+json" \
+                "/search/issues?q=org:${ORG}+updated:>${SINCE}+is:issue+is:public&per_page=100&page=${PAGE}")
+            COUNT=$(echo "$RES" | jq '.items | length')
+            echo "$RES" | jq -c '.items[]' >> issues.jsonl
+            [[ "$COUNT" -lt 100 ]] && break
+            done
+            jq -s '[.[] | {title,number,repository: .repository_url | capture("repos/(?<full>.+)$").full, author:.user.login, createdAt:.created_at, updatedAt:.updated_at, state:.state, labels: [.labels[].name], url:.html_url}]' issues.jsonl > issues.json
 
-            echo "Issues query: $Q_ISSUES"
-            echo "PRs query:    $Q_PRS"
+            # ---- Search PRs (REST with pagination)
+            : > prs.jsonl
+            for PAGE in $(seq 1 10); do
+            RES=$(gh api -H "Accept: application/vnd.github+json" \
+                "/search/issues?q=org:${ORG}+updated:>${SINCE}+is:pr+is:public&per_page=100&page=${PAGE}")
+            COUNT=$(echo "$RES" | jq '.items | length')
+            echo "$RES" | jq -c '.items[]' >> prs.jsonl
+            [[ "$COUNT" -lt 100 ]] && break
+            done
+            jq -s '[.[] | {title,number,repository: .repository_url | capture("repos/(?<full>.+)$").full, author:.user.login, createdAt:.created_at, updatedAt:.updated_at, state:(.state + (if .pull_request.merged_at then "-merged" else "" end)), mergedAt:(.pull_request.merged_at // null), labels: [.labels[].name], url:.html_url}]' prs.jsonl > prs.json
 
-            gh search issues "org:${ORG} updated:>${SINCE} is:public" \
-            --limit 1000 \
-            --json title,number,repository,author,createdAt,updatedAt,state,labels,url > issues.json
+            # ---- Releases (enumerate repos; more reliable than is:release)
+            gh api "/orgs/${ORG}/repos?per_page=100&type=public" > repos.json
+            : > releases.jsonl
+            jq -r '.[].name' repos.json | while read -r REPO; do
+            gh api -H "Accept: application/vnd.github+json" "/repos/${ORG}/${REPO}/releases?per_page=100" \
+                | jq -c --arg SINCE "${SINCE}" '.[] | select(.created_at >= ($SINCE+"T00:00:00Z")) | {name, tag_name, created_at, html_url, repository:"'${ORG}'/'${REPO}'"}' \
+                >> releases.jsonl || true
+            done
+            jq -s '.' releases.jsonl > releases.json || echo '[]' > releases.json
 
-            gh search prs "org:${ORG} updated:>${SINCE} is:public" \
-            --limit 1000 \
-            --json title,number,repository,author,createdAt,updatedAt,mergedAt,state,labels,url > prs.json
-
-
-            # (Optional) releases + events (kept as-is)
-            gh api -H "Accept: application/vnd.github+json" \
-            "/search/issues?q=org:${ORG}+is:release+created:>${SINCE}" > releases.json || echo '{}' > releases.json
+            # ---- Public org events (best effort)
             gh api "/orgs/${ORG}/events" > events.json || echo '[]' > events.json
 
+            # ---- Merge all payloads
             jq -n \
             --slurpfile issues issues.json \
             --slurpfile prs prs.json \
@@ -132,6 +149,13 @@ jobs:
             --slurpfile events events.json \
             '{issues:$issues[0], prs:$prs[0], releases:$releases[0], events:$events[0]}' \
             > activity.json
+
+            echo "==> Counts:"
+            echo "  issues:    $(jq 'length' issues.json)"
+            echo "  prs:       $(jq 'length' prs.json)"
+            echo "  releases:  $(jq 'length' releases.json)"
+            echo "  events:    $(jq 'length' events.json)"
+
 
 
       - name: Write prompt file
