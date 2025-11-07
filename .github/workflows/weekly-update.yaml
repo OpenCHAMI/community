@@ -46,6 +46,28 @@ jobs:
             # Lightweight call that should succeed with a fine-grained PAT that can read public repos
             gh api "/rate_limit" >/dev/null
             echo "ORG_READ_TOKEN present and usable."
+            
+      - name: Debug token + org visibility
+        env:
+            GH_TOKEN: ${{ secrets.ORG_READ_TOKEN }}
+            ORG: ${{ env.ORG }}
+        run: |
+            set -Eeuo pipefail
+            echo "==> GH auth check"; gh api /rate_limit >/dev/null && echo "rate_limit OK"
+
+            echo "==> Who am I?"
+            gh api /user | jq '{login, type}'
+
+            echo "==> Can I view the org?"
+            gh api "/orgs/${ORG}" | jq '{login, visibility, members_url}' || { echo "Org read failed"; exit 1; }
+
+            echo "==> List first 5 repos visible to this token"
+            gh api "/orgs/${ORG}/repos?per_page=5&type=public" | jq '.[].full_name'
+
+            echo "==> Single search sanity (issues)"
+            gh search issues --limit 1 -- "org:${ORG} updated:>$(date -u -d '7 days ago' +%Y-%m-%d) is:public" \
+            --json title,repository,url | jq
+
 
       - name: Compute dates (Denver-local & UTC)
         id: dates
