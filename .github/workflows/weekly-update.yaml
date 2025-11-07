@@ -75,36 +75,40 @@ jobs:
           echo "range_end=$RANGE_END_PRETTY" >> $GITHUB_OUTPUT
 
       - name: Collect org activity → activity.json
+        env:
+            GH_TOKEN: ${{ secrets.ORG_READ_TOKEN }}
+            ORG: ${{ env.ORG }}
         run: |
-          set -e
-          ORG="${ORG}"
-          SINCE="${{ steps.dates.outputs.since_utc }}"
+            set -Eeuo pipefail
+            SINCE="${{ steps.dates.outputs.since_utc }}"
 
-          # Issues updated in last 7 days
-          gh search issues "org:$ORG is:public updated:>$SINCE" \
-            --json title,number,repository,author,createdAt,updatedAt,state,labels,url > issues.json
+            Q_ISSUES="org:${ORG} updated:>${SINCE} is:public"
+            Q_PRS="org:${ORG} updated:>${SINCE} is:public"
 
-          # PRs updated/merged in last 7 days
-          gh search prs "org:$ORG is:public updated:>$SINCE" \
-            --json title,number,repository,author,createdAt,updatedAt,mergedAt,state,labels,url > prs.json
+            echo "Issues query: $Q_ISSUES"
+            echo "PRs query:    $Q_PRS"
 
-          # Releases created in last 7 days (via search API)
-          gh api -H "Accept: application/vnd.github+json" \
-            "/search/issues?q=org:$ORG+is:release+created:>$SINCE" > releases.json || echo '{}' > releases.json
+            gh search issues --limit 2000 \
+            --json title,number,repository,author,createdAt,updatedAt,state,labels,url \
+            -- "$Q_ISSUES" > issues.json
 
-          # Public org events (best effort)
-          gh api "/orgs/$ORG/events" > events.json || echo '[]' > events.json
+            gh search prs --limit 2000 \
+            --json title,number,repository,author,createdAt,updatedAt,mergedAt,state,labels,url \
+            -- "$Q_PRS" > prs.json
 
-          jq -n \
+            # (Optional) releases + events (kept as-is)
+            gh api -H "Accept: application/vnd.github+json" \
+            "/search/issues?q=org:${ORG}+is:release+created:>${SINCE}" > releases.json || echo '{}' > releases.json
+            gh api "/orgs/${ORG}/events" > events.json || echo '[]' > events.json
+
+            jq -n \
             --slurpfile issues issues.json \
             --slurpfile prs prs.json \
             --slurpfile releases releases.json \
             --slurpfile events events.json \
             '{issues:$issues[0], prs:$prs[0], releases:$releases[0], events:$events[0]}' \
             > activity.json
-        env:
-          GH_TOKEN: ${{ secrets.ORG_READ_TOKEN }}
-          ORG: ${{ env.ORG }}
+
 
       - name: Write prompt file
         run: |
