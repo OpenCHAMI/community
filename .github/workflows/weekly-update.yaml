@@ -225,6 +225,20 @@ jobs:
           WEBSITE_REPO_TOKEN: ${{ secrets.WEBSITE_REPO_TOKEN }}
         run: |
           set -e
+          # --- Preflight checks ---
+          if [[ -z "${WEBSITE_REPO_TOKEN:-}" ]]; then
+            echo "WEBSITE_REPO_TOKEN is not set. Please add a repo-scoped token with contents:write to repo secrets." >&2
+            exit 1
+          fi
+
+          # Validate we can read repo metadata and push over HTTPS with token
+          echo "==> Verifying access to ${WEBSITE_REPO}"
+          curl -sSf -H "Authorization: Bearer ${WEBSITE_REPO_TOKEN}" \
+            -H "Accept: application/vnd.github+json" \
+            "https://api.github.com/repos/${WEBSITE_REPO}" >/dev/null || {
+              echo "Failed to access ${WEBSITE_REPO} with provided token." >&2
+              exit 1
+            }
           BRANCH="weekly-digest/${{ steps.dates.outputs.pub_date }}"
           POST_FILENAME="${{ steps.dates.outputs.pub_date }}.md"
           # Path relative to repo root (used for git add)
@@ -240,9 +254,32 @@ jobs:
           git checkout -b "$BRANCH"
           # Ensure remote embeds a token with push permissions
           git remote set-url origin "https://x-access-token:${WEBSITE_REPO_TOKEN}@github.com/${WEBSITE_REPO}.git"
+
+          # Verify remote is reachable and we have permissions
+          echo "==> Verifying remote and permissions (git ls-remote)"
+          git ls-remote --heads origin >/dev/null || {
+            echo "Cannot reach origin with provided credentials. Check token scopes and repo access." >&2
+            exit 1
+          }
           git add "$POST_PATH"
           git commit -m "feat(blog): add ${{ steps.post.outputs.title }}"
-          git push --set-upstream origin "$BRANCH"
+          echo "==> Pushing branch $BRANCH"
+          if ! git push --set-upstream origin "$BRANCH"; then
+            echo "Push failed. Common causes:" >&2
+            echo " - Token missing repo:contents write (classic) or contents:write (fine-grained) scope" >&2
+            echo " - Token doesn't have access to ${WEBSITE_REPO}" >&2
+            echo " - Branch protection or required checks blocking initial push" >&2
+            echo " - Using GITHUB_TOKEN instead of WEBSITE_REPO_TOKEN by mistake" >&2
+            # Emit summary to job UI
+            {
+              echo "### Weekly digest push failed"
+              echo "Repository: ${WEBSITE_REPO}"
+              echo "Branch: ${BRANCH}"
+              echo "Path: ${POST_PATH}"
+              echo "Please verify secrets.WEBSITE_REPO_TOKEN has write access."
+            } >> "$GITHUB_STEP_SUMMARY"
+            exit 1
+          fi
 
           # Outputs reference the branch and the relative post path inside website repo
           echo "branch=$BRANCH" >> $GITHUB_OUTPUT
