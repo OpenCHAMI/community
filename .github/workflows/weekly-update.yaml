@@ -224,19 +224,23 @@ jobs:
         run: |
           set -e
           BRANCH="weekly-digest/${{ steps.dates.outputs.pub_date }}"
-          POST_PATH="website/${POST_DIR}/${{ steps.dates.outputs.pub_date }}.md"
+          POST_FILENAME="${{ steps.dates.outputs.pub_date }}.md"
+          # Path relative to repo root (used for git add)
+          POST_PATH="${POST_DIR}/${POST_FILENAME}"
 
+          # Create directory and copy generated post into cloned website repo
           mkdir -p "website/${POST_DIR}"
-          cp POST.md "${POST_PATH}"
+          cp POST.md "website/${POST_PATH}"
 
           cd website
           git config user.name "openchami-bot"
           git config user.email "bot@openchami.org"
           git checkout -b "$BRANCH"
-          git add "${POST_PATH}"
+          git add "$POST_PATH"
           git commit -m "feat(blog): add ${{ steps.post.outputs.title }}"
           git push --set-upstream origin "$BRANCH"
 
+          # Outputs reference the branch and the relative post path inside website repo
           echo "branch=$BRANCH" >> $GITHUB_OUTPUT
           echo "post_path=$POST_PATH" >> $GITHUB_OUTPUT
 
