@@ -276,7 +276,15 @@ jobs:
           cd website
           git config user.name "openchami-bot"
           git config user.email "bot@openchami.org"
-          git checkout -b "$BRANCH"
+          # If remote branch already exists from a previous run, base our work on it
+          if git ls-remote --exit-code --heads origin "$BRANCH" >/dev/null; then
+            echo "==> Remote branch $BRANCH exists; checking out tracking branch"
+            git fetch origin "$BRANCH"
+            git checkout -B "$BRANCH" "origin/$BRANCH"
+          else
+            echo "==> Creating new branch $BRANCH"
+            git checkout -b "$BRANCH"
+          fi
           # Ensure remote embeds a token with push permissions
           git remote set-url origin "https://x-access-token:${WEBSITE_REPO_TOKEN}@github.com/${WEBSITE_REPO}.git"
 
@@ -290,7 +298,14 @@ jobs:
           # DCO sign-off: -s appends Signed-off-by matching configured user
           git commit -s -m "feat(blog): add ${{ steps.post.outputs.title }}"
           echo "==> Pushing branch $BRANCH"
-          if ! git push --set-upstream origin "$BRANCH"; then
+          # If branch existed, we already set local branch to track origin/$BRANCH; a regular push will fast-forward
+          # If it's new, set upstream; detect case dynamically
+          PUSH_ARGS=(origin "$BRANCH")
+          if ! git rev-parse --abbrev-ref --symbolic-full-name @{u} >/dev/null 2>&1; then
+            # No upstream set yet (new branch)
+            PUSH_ARGS=(--set-upstream "${PUSH_ARGS[@]}")
+          fi
+          if ! git push "${PUSH_ARGS[@]}"; then
             echo "Push failed. Common causes:" >&2
             echo " - Token missing repo:contents write (classic) or contents:write (fine-grained) scope" >&2
             echo " - Token doesn't have access to ${WEBSITE_REPO}" >&2
