@@ -183,7 +183,32 @@ jobs:
       - name: Generate digest (Markdown) with GitHub Models → DIGEST.md
         run: |
           set -Eeuo pipefail
-          gh models run --org "$ORG" "$MODEL_ID" --file prompts/digest.prompt.yml < activity.json > DIGEST.md
+          # Try model generation with explicit input file first
+          if ! gh models run --org "$ORG" "$MODEL_ID" \
+               --input-file activity.json \
+               --system "You are a technical writer + developer marketer. Create a concise, skimmable weekly digest in Markdown. Sections: Highlights, New & Notable PRs, Issues to Watch, Releases, Contributor Thanks. Link to items. Prefer user-facing language. Avoid internal jargon. End with 'What’s next' suggestions and 3–5 proposed blog titles." \
+               --prompt "Here is JSON of activity across the org for the last 7 days. Extract themes (user value), group by repo when helpful, and surface at most 10 bullets in Highlights." \
+               > DIGEST.md; then
+            echo "gh models run failed; will attempt fallback digest." >&2
+          fi
+
+          # Fallback: generate a simple digest from activity.json if output is empty/too small
+          if [[ ! -s DIGEST.md || $(wc -w < DIGEST.md) -lt 20 ]]; then
+            {
+              echo "# Weekly Highlights";
+              echo;
+              echo "## Issues";
+              jq -r '.issues[]? | "- [\(.title)](\(.url)) in \(.repository) by @\(.author)"' activity.json || true;
+              echo;
+              echo "## Pull Requests";
+              jq -r '.prs[]? | "- [\(.title)](\(.url)) in \(.repository) by @\(.author) (state: \(.state))"' activity.json || true;
+              echo;
+              echo "## Releases";
+              jq -r '.releases[]? | "- \(.repository) \(.name) (\(.tag_name)) - \(.html_url)"' activity.json || true;
+              echo;
+              echo "_Generated without LLM due to model error or empty input_";
+            } > DIGEST.md
+          fi
         env:
           GH_TOKEN: ${{ github.token }}
           MODEL_ID: ${{ env.MODEL_ID }}
@@ -262,7 +287,8 @@ jobs:
             exit 1
           }
           git add "$POST_PATH"
-          git commit -m "feat(blog): add ${{ steps.post.outputs.title }}"
+          # DCO sign-off: -s appends Signed-off-by matching configured user
+          git commit -s -m "feat(blog): add ${{ steps.post.outputs.title }}"
           echo "==> Pushing branch $BRANCH"
           if ! git push --set-upstream origin "$BRANCH"; then
             echo "Push failed. Common causes:" >&2
