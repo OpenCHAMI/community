@@ -183,30 +183,31 @@ jobs:
       - name: Generate digest (Markdown) with GitHub Models → DIGEST.md
         run: |
           set -Eeuo pipefail
-          # Try model generation with explicit input file first
-          if ! gh models run --org "$ORG" "$MODEL_ID" \
-               --input-file activity.json \
-               --system "You are a technical writer + developer marketer. Create a concise, skimmable weekly digest in Markdown. Sections: Highlights, New & Notable PRs, Issues to Watch, Releases, Contributor Thanks. Link to items. Prefer user-facing language. Avoid internal jargon. End with 'What’s next' suggestions and 3–5 proposed blog titles." \
-               --prompt "Here is JSON of activity across the org for the last 7 days. Extract themes (user value), group by repo when helpful, and surface at most 10 bullets in Highlights." \
-               > DIGEST.md; then
-            echo "gh models run failed; will attempt fallback digest." >&2
+          # Build a reduced JSON context to keep prompt size reasonable
+          jq '{issues:(.issues[:10]), prs:(.prs[:10]), releases:(.releases[:8])}' activity.json > subset.json || cp activity.json subset.json
+          JSON_CONTEXT=$(jq -c '.' subset.json)
+          # Use the prompt file with a template variable for input JSON
+          # Note: gh models run expects flags, then model ID (no separate prompt arg when using --file)
+          if ! gh models run --org "$ORG" --file prompts/digest.prompt.yml --var input="$(cat subset.json)" "$MODEL_ID" > DIGEST.md; then
+            echo "gh models run failed; falling back to jq digest." >&2
           fi
 
-          # Fallback: generate a simple digest from activity.json if output is empty/too small
-          if [[ ! -s DIGEST.md || $(wc -w < DIGEST.md) -lt 20 ]]; then
+          # Fallback if model output is empty or too short
+          if [[ ! -s DIGEST.md || $(wc -w < DIGEST.md) -lt 40 ]]; then
+            echo "Applying fallback digest generation" >&2
             {
               echo "# Weekly Highlights";
               echo;
               echo "## Issues";
-              jq -r '.issues[]? | "- [\(.title)](\(.url)) in \(.repository) by @\(.author)"' activity.json || true;
+              jq -r '.issues[]? | "- [\(.title)](\(.url)) (\(.repository)) by @\(.author)"' activity.json || true;
               echo;
               echo "## Pull Requests";
-              jq -r '.prs[]? | "- [\(.title)](\(.url)) in \(.repository) by @\(.author) (state: \(.state))"' activity.json || true;
+              jq -r '.prs[]? | "- [\(.title)](\(.url)) (\(.repository)) by @\(.author) state: \(.state)"' activity.json || true;
               echo;
               echo "## Releases";
-              jq -r '.releases[]? | "- \(.repository) \(.name) (\(.tag_name)) - \(.html_url)"' activity.json || true;
+              jq -r '.releases[]? | "- \(.repository) release: \(.name) (tag: \(.tag_name)) - \(.html_url)"' activity.json || true;
               echo;
-              echo "_Generated without LLM due to model error or empty input_";
+              echo "_Fallback digest generated without model due to empty or insufficient model output._";
             } > DIGEST.md
           fi
         env:
@@ -253,6 +254,14 @@ jobs:
           # --- Preflight checks ---
           if [[ -z "${WEBSITE_REPO_TOKEN:-}" ]]; then
             echo "WEBSITE_REPO_TOKEN is not set. Please add a repo-scoped token with contents:write to repo secrets." >&2
+            {
+              echo "### Missing WEBSITE_REPO_TOKEN"
+              echo "This workflow needs a Fine-grained PAT in secrets.WEBSITE_REPO_TOKEN with:"
+              echo "- Repository access: OpenCHAMI/openchami.org"
+              echo "- Permissions: Contents: Read and write; Pull requests: Read and write"
+              echo
+              echo "How to create: Settings → Developer settings → Fine-grained tokens → Generate new token."
+            } >> "$GITHUB_STEP_SUMMARY"
             exit 1
           fi
 
@@ -262,6 +271,11 @@ jobs:
             -H "Accept: application/vnd.github+json" \
             "https://api.github.com/repos/${WEBSITE_REPO}" >/dev/null || {
               echo "Failed to access ${WEBSITE_REPO} with provided token." >&2
+              {
+                echo "### Cannot access ${WEBSITE_REPO} via REST API"
+                echo "The token in secrets.WEBSITE_REPO_TOKEN likely lacks repository access or contents:write."
+                echo "Verify: token has access to ${WEBSITE_REPO} and includes Contents: Read and write."
+              } >> "$GITHUB_STEP_SUMMARY"
               exit 1
             }
           BRANCH="weekly-digest/${{ steps.dates.outputs.pub_date }}"
@@ -292,6 +306,12 @@ jobs:
           echo "==> Verifying remote and permissions (git ls-remote)"
           git ls-remote --heads origin >/dev/null || {
             echo "Cannot reach origin with provided credentials. Check token scopes and repo access." >&2
+            {
+              echo "### Git remote check failed (git ls-remote)"
+              echo "Origin: https://github.com/${WEBSITE_REPO}.git"
+              echo "This usually indicates insufficient token scopes or repo access."
+              echo "Required: Contents: Read and write; access to ${WEBSITE_REPO}."
+            } >> "$GITHUB_STEP_SUMMARY"
             exit 1
           }
           git add "$POST_PATH"
@@ -317,7 +337,16 @@ jobs:
               echo "Repository: ${WEBSITE_REPO}"
               echo "Branch: ${BRANCH}"
               echo "Path: ${POST_PATH}"
-              echo "Please verify secrets.WEBSITE_REPO_TOKEN has write access."
+              echo
+              echo "#### How to fix"
+              echo "- Ensure secrets.WEBSITE_REPO_TOKEN is a Fine-grained PAT with Contents: Read and write and Pull requests: Read and write"
+              echo "- Ensure the token has explicit repository access to ${WEBSITE_REPO}"
+              echo "- If branch protection blocks pushes, allow bypass or push an initial empty commit via a maintainer account"
+              echo
+              echo "#### Rollback"
+              echo "If a partial branch was created, you can clean up:"
+              echo "- Delete remote branch: git push origin --delete ${BRANCH}"
+              echo "- Or open a revert PR in ${WEBSITE_REPO} to remove ${POST_PATH}"
             } >> "$GITHUB_STEP_SUMMARY"
             exit 1
           fi
