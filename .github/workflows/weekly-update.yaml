@@ -221,6 +221,8 @@ jobs:
 
       - name: Create post file, branch, commit, and push
         id: prprep
+        env:
+          WEBSITE_REPO_TOKEN: ${{ secrets.WEBSITE_REPO_TOKEN }}
         run: |
           set -e
           BRANCH="weekly-digest/${{ steps.dates.outputs.pub_date }}"
@@ -236,6 +238,8 @@ jobs:
           git config user.name "openchami-bot"
           git config user.email "bot@openchami.org"
           git checkout -b "$BRANCH"
+          # Ensure remote embeds a token with push permissions
+          git remote set-url origin "https://x-access-token:${WEBSITE_REPO_TOKEN}@github.com/${WEBSITE_REPO}.git"
           git add "$POST_PATH"
           git commit -m "feat(blog): add ${{ steps.post.outputs.title }}"
           git push --set-upstream origin "$BRANCH"
