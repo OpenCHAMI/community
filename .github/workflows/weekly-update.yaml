@@ -14,7 +14,7 @@ permissions:
 env:
   ORG: OpenCHAMI
   WEBSITE_REPO: OpenCHAMI/openchami.org
-  POST_DIR: content/posts/weekly
+  POST_DIR: content/news/weekly
   LOCAL_TZ: America/Denver
   POST_TIME: "09:00:00"   # local publish time in the Hugo front matter
   MODEL_ID: openai/gpt-4.1-mini
@@ -172,6 +172,7 @@ jobs:
                 Sections: Highlights, New & Notable PRs, Issues to Watch, Releases, Contributor Thanks.
                 Link to items. Prefer user-facing language. Avoid internal jargon.
                 End with "What’s next" suggestions and 3–5 proposed blog titles.
+                Do not wrap the output in code fences. Do not include a top-level H1 title; start directly with sections using '##' headings.
             - role: user
               content: >
                 Here is JSON of activity across the org for the last 7 days.
@@ -219,6 +220,16 @@ jobs:
         id: post
         run: |
           set -e
+          # Sanitize model output: remove code fences and top-level title if present
+          awk '
+          BEGIN {in_fence=0; printed=0; removed_h1=0}
+          /^```/ { in_fence = !in_fence; next }
+          in_fence { next }
+          removed_h1==0 && printed==0 && $0 ~ /^# / { removed_h1=1; next }
+          printed==0 && $0 ~ /^[[:space:]]*$/ { next }
+          { print; printed=1 }
+          ' DIGEST.md > DIGEST_CLEAN.md
+
           TITLE="OpenCHAMI Weekly Digest: ${{ steps.dates.outputs.range_start }}–${{ steps.dates.outputs.range_end }}"
           SLUG="weekly-digest-${{ steps.dates.outputs.pub_date }}"
           FRONTMATTER=$(cat <<EOF
@@ -233,7 +244,7 @@ jobs:
           )
           echo "${FRONTMATTER}" > POST.md
           echo "" >> POST.md
-          cat DIGEST.md >> POST.md
+          cat DIGEST_CLEAN.md >> POST.md
 
           # Output for later steps
           echo "title=${TITLE}" >> $GITHUB_OUTPUT
