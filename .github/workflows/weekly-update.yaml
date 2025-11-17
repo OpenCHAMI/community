@@ -182,25 +182,29 @@ jobs:
         run: |
           set -e
           BRANCH="weekly-digest/${{ steps.dates.outputs.pub_date }}"
-          POST_PATH="website/${POST_DIR}/${{ steps.dates.outputs.pub_date }}.md"
+          POST_FILENAME="${{ steps.dates.outputs.pub_date }}.md"
+          # Path relative to repo root (for git operations inside website/)
+          POST_PATH_RELATIVE="${POST_DIR}/${POST_FILENAME}"
+          # Full path from current directory (for file operations)
+          POST_PATH_FULL="website/${POST_PATH_RELATIVE}"
 
           mkdir -p "website/${POST_DIR}"
           if [ ! -f POST.md ]; then
             echo "POST.md is missing; check if previous steps failed."
             exit 1
-            fi
-          cp POST.md "${POST_PATH}"
+          fi
+          cp POST.md "${POST_PATH_FULL}"
 
           cd website
           git config user.name "openchami-bot"
           git config user.email "bot@openchami.org"
           git checkout -b "$BRANCH"
-          git add "${POST_PATH}"
+          git add "${POST_PATH_RELATIVE}"
           git commit -m "feat(blog): add ${{ steps.post.outputs.title }}"
           git push --set-upstream origin "$BRANCH"
 
           echo "branch=$BRANCH" >> $GITHUB_OUTPUT
-          echo "post_path=$POST_PATH" >> $GITHUB_OUTPUT
+          echo "post_path=${POST_PATH_RELATIVE}" >> $GITHUB_OUTPUT
 
       - name: Open PR to website repo
         run: |
