@@ -14,7 +14,7 @@ permissions:
 env:
   ORG: OpenCHAMI
   WEBSITE_REPO: OpenCHAMI/openchami.org
-  POST_DIR: content/posts/weekly
+  POST_DIR: content/news/weekly
   LOCAL_TZ: America/Denver
   POST_TIME: "09:00:00"   # local publish time in the Hugo front matter
   MODEL_ID: openai/gpt-4.1-mini
@@ -47,6 +47,30 @@ jobs:
             gh api "/rate_limit" >/dev/null
             echo "ORG_READ_TOKEN present and usable."
 
+      - name: Debug token + org visibility
+        env:
+            GH_TOKEN: ${{ secrets.ORG_READ_TOKEN }}
+            ORG: ${{ env.ORG }}
+        run: |
+            set -Eeuo pipefail
+            echo "==> GH auth check"; gh api /rate_limit >/dev/null && echo "rate_limit OK"
+
+            echo "==> Who am I?"
+            gh api /user | jq '{login, type}'
+
+            echo "==> Can I view the org?"
+            gh api "/orgs/${ORG}" | jq '{login, visibility, members_url}' || { echo "Org read failed"; exit 1; }
+
+            echo "==> List first 5 repos visible to this token"
+            gh api "/orgs/${ORG}/repos?per_page=5&type=public" | jq '.[].full_name'
+
+            # One issue result via REST Search API
+            gh api -H "Accept: application/vnd.github+json" \
+              "/search/issues?q=org:${ORG}+is:issue+is:public&per_page=1" \
+              | jq '{count:.total_count, sample: (.items[0] | {title, html_url, repository_url})}'
+
+
+
       - name: Compute dates (Denver-local & UTC)
         id: dates
         run: |
@@ -74,37 +98,65 @@ jobs:
           echo "range_start=$RANGE_START_PRETTY" >> $GITHUB_OUTPUT
           echo "range_end=$RANGE_END_PRETTY" >> $GITHUB_OUTPUT
 
-      - name: Collect org activity → activity.json
+      - name: Collect org activity → activity.json (REST + pagination)
+        env:
+            GH_TOKEN: ${{ secrets.ORG_READ_TOKEN }}
+            ORG: ${{ env.ORG }}
         run: |
-          set -e
-          ORG="${ORG}"
-          SINCE="${{ steps.dates.outputs.since_utc }}"
+            set -Eeuo pipefail
+            SINCE="${{ steps.dates.outputs.since_utc }}"
 
-          # Issues updated in last 7 days
-          gh search issues "org:$ORG" "is:public" "updated:>$SINCE" \
-            --json title,number,repository,author,createdAt,updatedAt,state,labels,url > issues.json
+            # ---- Search Issues (REST with pagination)
+            : > issues.jsonl
+            for PAGE in $(seq 1 10); do
+            RES=$(gh api -H "Accept: application/vnd.github+json" \
+                "/search/issues?q=org:${ORG}+updated:>${SINCE}+is:issue+is:public&per_page=100&page=${PAGE}")
+            COUNT=$(echo "$RES" | jq '.items | length')
+            echo "$RES" | jq -c '.items[]' >> issues.jsonl
+            [[ "$COUNT" -lt 100 ]] && break
+            done
+            jq -s '[.[] | {title,number,repository: .repository_url | capture("repos/(?<full>.+)$").full, author:.user.login, createdAt:.created_at, updatedAt:.updated_at, state:.state, labels: [.labels[].name], url:.html_url}]' issues.jsonl > issues.json
 
-          # PRs updated/merged in last 7 days
-          gh search prs "org:$ORG" "is:public" "updated:>$SINCE" \
-            --json title,number,repository,author,createdAt,updatedAt,state,labels,url > prs.json
+            # ---- Search PRs (REST with pagination)
+            : > prs.jsonl
+            for PAGE in $(seq 1 10); do
+            RES=$(gh api -H "Accept: application/vnd.github+json" \
+                "/search/issues?q=org:${ORG}+updated:>${SINCE}+is:pr+is:public&per_page=100&page=${PAGE}")
+            COUNT=$(echo "$RES" | jq '.items | length')
+            echo "$RES" | jq -c '.items[]' >> prs.jsonl
+            [[ "$COUNT" -lt 100 ]] && break
+            done
+            jq -s '[.[] | {title,number,repository: .repository_url | capture("repos/(?<full>.+)$").full, author:.user.login, createdAt:.created_at, updatedAt:.updated_at, state:(.state + (if .pull_request.merged_at then "-merged" else "" end)), mergedAt:(.pull_request.merged_at // null), labels: [.labels[].name], url:.html_url}]' prs.jsonl > prs.json
 
-          # Releases created in last 7 days (via search API)
-          gh api -H "Accept: application/vnd.github+json" \
-            "/search/issues?q=org:$ORG+is:release+created:>$SINCE" > releases.json || echo '{}' > releases.json
+            # ---- Releases (enumerate repos; more reliable than is:release)
+            gh api "/orgs/${ORG}/repos?per_page=100&type=public" > repos.json
+            : > releases.jsonl
+            jq -r '.[].name' repos.json | while read -r REPO; do
+            gh api -H "Accept: application/vnd.github+json" "/repos/${ORG}/${REPO}/releases?per_page=100" \
+                | jq -c --arg SINCE "${SINCE}" '.[] | select(.created_at >= ($SINCE+"T00:00:00Z")) | {name, tag_name, created_at, html_url, repository:"'${ORG}'/'${REPO}'"}' \
+                >> releases.jsonl || true
+            done
+            jq -s '.' releases.jsonl > releases.json || echo '[]' > releases.json
 
-          # Public org events (best effort)
-          gh api "/orgs/$ORG/events" > events.json || echo '[]' > events.json
+            # ---- Public org events (best effort)
+            gh api "/orgs/${ORG}/events" > events.json || echo '[]' > events.json
 
-          jq -n \
+            # ---- Merge all payloads
+            jq -n \
             --slurpfile issues issues.json \
             --slurpfile prs prs.json \
             --slurpfile releases releases.json \
             --slurpfile events events.json \
             '{issues:$issues[0], prs:$prs[0], releases:$releases[0], events:$events[0]}' \
             > activity.json
-        env:
-          GH_TOKEN: ${{ secrets.ORG_READ_TOKEN }}
-          ORG: ${{ env.ORG }}
+
+            echo "==> Counts:"
+            echo "  issues:    $(jq 'length' issues.json)"
+            echo "  prs:       $(jq 'length' prs.json)"
+            echo "  releases:  $(jq 'length' releases.json)"
+            echo "  events:    $(jq 'length' events.json)"
+
+
 
       - name: Write prompt file
         run: |
@@ -120,6 +172,7 @@ jobs:
                 Sections: Highlights, New & Notable PRs, Issues to Watch, Releases, Contributor Thanks.
                 Link to items. Prefer user-facing language. Avoid internal jargon.
                 End with "What’s next" suggestions and 3–5 proposed blog titles.
+                Do not wrap the output in code fences. Do not include a top-level H1 title; start directly with sections using '##' headings.
             - role: user
               content: >
                 Here is JSON of activity across the org for the last 7 days.
@@ -131,15 +184,52 @@ jobs:
       - name: Generate digest (Markdown) with GitHub Models → DIGEST.md
         run: |
           set -Eeuo pipefail
-          gh models run --model "$MODEL_ID" --file prompts/digest.prompt.yml < activity.json > DIGEST.md
+          # Build a reduced JSON context to keep prompt size reasonable
+          jq '{issues:(.issues[:10]), prs:(.prs[:10]), releases:(.releases[:8])}' activity.json > subset.json || cp activity.json subset.json
+          JSON_CONTEXT=$(jq -c '.' subset.json)
+          # Use the prompt file with a template variable for input JSON
+          # Note: gh models run expects flags, then model ID (no separate prompt arg when using --file)
+          if ! gh models run --org "$ORG" --file prompts/digest.prompt.yml --var input="$(cat subset.json)" "$MODEL_ID" > DIGEST.md; then
+            echo "gh models run failed; falling back to jq digest." >&2
+          fi
+
+          # Fallback if model output is empty or too short
+          if [[ ! -s DIGEST.md || $(wc -w < DIGEST.md) -lt 40 ]]; then
+            echo "Applying fallback digest generation" >&2
+            {
+              echo "# Weekly Highlights";
+              echo;
+              echo "## Issues";
+              jq -r '.issues[]? | "- [\(.title)](\(.url)) (\(.repository)) by @\(.author)"' activity.json || true;
+              echo;
+              echo "## Pull Requests";
+              jq -r '.prs[]? | "- [\(.title)](\(.url)) (\(.repository)) by @\(.author) state: \(.state)"' activity.json || true;
+              echo;
+              echo "## Releases";
+              jq -r '.releases[]? | "- \(.repository) release: \(.name) (tag: \(.tag_name)) - \(.html_url)"' activity.json || true;
+              echo;
+              echo "_Fallback digest generated without model due to empty or insufficient model output._";
+            } > DIGEST.md
+          fi
         env:
           GH_TOKEN: ${{ github.token }}
           MODEL_ID: ${{ env.MODEL_ID }}
+          ORG: ${{ env.ORG }}
 
       - name: Build Hugo post content → POST.md
         id: post
         run: |
           set -e
+          # Sanitize model output: remove code fences and top-level title if present
+          awk '
+          BEGIN {in_fence=0; printed=0; removed_h1=0}
+          /^```/ { in_fence = !in_fence; next }
+          in_fence { next }
+          removed_h1==0 && printed==0 && $0 ~ /^# / { removed_h1=1; next }
+          printed==0 && $0 ~ /^[[:space:]]*$/ { next }
+          { print; printed=1 }
+          ' DIGEST.md > DIGEST_CLEAN.md
+
           TITLE="OpenCHAMI Weekly Digest: ${{ steps.dates.outputs.range_start }}–${{ steps.dates.outputs.range_end }}"
           SLUG="weekly-digest-${{ steps.dates.outputs.pub_date }}"
           FRONTMATTER=$(cat <<EOF
@@ -154,7 +244,7 @@ jobs:
           )
           echo "${FRONTMATTER}" > POST.md
           echo "" >> POST.md
-          cat DIGEST.md >> POST.md
+          cat DIGEST_CLEAN.md >> POST.md
 
           # Output for later steps
           echo "title=${TITLE}" >> $GITHUB_OUTPUT
@@ -168,22 +258,111 @@ jobs:
 
       - name: Create post file, branch, commit, and push
         id: prprep
+        env:
+          WEBSITE_REPO_TOKEN: ${{ secrets.WEBSITE_REPO_TOKEN }}
         run: |
           set -e
-          BRANCH="weekly-digest/${{ steps.dates.outputs.pub_date }}"
-          POST_PATH="website/${POST_DIR}/${{ steps.dates.outputs.pub_date }}.md"
+          # --- Preflight checks ---
+          if [[ -z "${WEBSITE_REPO_TOKEN:-}" ]]; then
+            echo "WEBSITE_REPO_TOKEN is not set. Please add a repo-scoped token with contents:write to repo secrets." >&2
+            {
+              echo "### Missing WEBSITE_REPO_TOKEN"
+              echo "This workflow needs a Fine-grained PAT in secrets.WEBSITE_REPO_TOKEN with:"
+              echo "- Repository access: OpenCHAMI/openchami.org"
+              echo "- Permissions: Contents: Read and write; Pull requests: Read and write"
+              echo
+              echo "How to create: Settings → Developer settings → Fine-grained tokens → Generate new token."
+            } >> "$GITHUB_STEP_SUMMARY"
+            exit 1
+          fi
 
+          # Validate we can read repo metadata and push over HTTPS with token
+          echo "==> Verifying access to ${WEBSITE_REPO}"
+          curl -sSf -H "Authorization: Bearer ${WEBSITE_REPO_TOKEN}" \
+            -H "Accept: application/vnd.github+json" \
+            "https://api.github.com/repos/${WEBSITE_REPO}" >/dev/null || {
+              echo "Failed to access ${WEBSITE_REPO} with provided token." >&2
+              {
+                echo "### Cannot access ${WEBSITE_REPO} via REST API"
+                echo "The token in secrets.WEBSITE_REPO_TOKEN likely lacks repository access or contents:write."
+                echo "Verify: token has access to ${WEBSITE_REPO} and includes Contents: Read and write."
+              } >> "$GITHUB_STEP_SUMMARY"
+              exit 1
+            }
+          BRANCH="weekly-digest/${{ steps.dates.outputs.pub_date }}"
+          POST_FILENAME="${{ steps.dates.outputs.pub_date }}.md"
+          # Path relative to repo root (used for git add)
+          POST_PATH="${POST_DIR}/${POST_FILENAME}"
+
+          # Create directory and copy generated post into cloned website repo
           mkdir -p "website/${POST_DIR}"
-          cp POST.md "${POST_PATH}"
+          cp POST.md "website/${POST_PATH}"
 
           cd website
           git config user.name "openchami-bot"
           git config user.email "bot@openchami.org"
-          git checkout -b "$BRANCH"
-          git add "${POST_PATH}"
-          git commit -m "feat(blog): add ${{ steps.post.outputs.title }}"
-          git push --set-upstream origin "$BRANCH"
+          # If remote branch already exists from a previous run, base our work on it
+          if git ls-remote --exit-code --heads origin "$BRANCH" >/dev/null; then
+            echo "==> Remote branch $BRANCH exists; checking out tracking branch"
+            git fetch origin "$BRANCH"
+            git checkout -B "$BRANCH" "origin/$BRANCH"
+          else
+            echo "==> Creating new branch $BRANCH"
+            git checkout -b "$BRANCH"
+          fi
+          # Ensure remote embeds a token with push permissions
+          git remote set-url origin "https://x-access-token:${WEBSITE_REPO_TOKEN}@github.com/${WEBSITE_REPO}.git"
 
+          # Verify remote is reachable and we have permissions
+          echo "==> Verifying remote and permissions (git ls-remote)"
+          git ls-remote --heads origin >/dev/null || {
+            echo "Cannot reach origin with provided credentials. Check token scopes and repo access." >&2
+            {
+              echo "### Git remote check failed (git ls-remote)"
+              echo "Origin: https://github.com/${WEBSITE_REPO}.git"
+              echo "This usually indicates insufficient token scopes or repo access."
+              echo "Required: Contents: Read and write; access to ${WEBSITE_REPO}."
+            } >> "$GITHUB_STEP_SUMMARY"
+            exit 1
+          }
+          git add "$POST_PATH"
+          # DCO sign-off: -s appends Signed-off-by matching configured user
+          git commit -s -m "feat(blog): add ${{ steps.post.outputs.title }}"
+          echo "==> Pushing branch $BRANCH"
+          # If branch existed, we already set local branch to track origin/$BRANCH; a regular push will fast-forward
+          # If it's new, set upstream; detect case dynamically
+          PUSH_ARGS=(origin "$BRANCH")
+          if ! git rev-parse --abbrev-ref --symbolic-full-name @{u} >/dev/null 2>&1; then
+            # No upstream set yet (new branch)
+            PUSH_ARGS=(--set-upstream "${PUSH_ARGS[@]}")
+          fi
+          if ! git push "${PUSH_ARGS[@]}"; then
+            echo "Push failed. Common causes:" >&2
+            echo " - Token missing repo:contents write (classic) or contents:write (fine-grained) scope" >&2
+            echo " - Token doesn't have access to ${WEBSITE_REPO}" >&2
+            echo " - Branch protection or required checks blocking initial push" >&2
+            echo " - Using GITHUB_TOKEN instead of WEBSITE_REPO_TOKEN by mistake" >&2
+            # Emit summary to job UI
+            {
+              echo "### Weekly digest push failed"
+              echo "Repository: ${WEBSITE_REPO}"
+              echo "Branch: ${BRANCH}"
+              echo "Path: ${POST_PATH}"
+              echo
+              echo "#### How to fix"
+              echo "- Ensure secrets.WEBSITE_REPO_TOKEN is a Fine-grained PAT with Contents: Read and write and Pull requests: Read and write"
+              echo "- Ensure the token has explicit repository access to ${WEBSITE_REPO}"
+              echo "- If branch protection blocks pushes, allow bypass or push an initial empty commit via a maintainer account"
+              echo
+              echo "#### Rollback"
+              echo "If a partial branch was created, you can clean up:"
+              echo "- Delete remote branch: git push origin --delete ${BRANCH}"
+              echo "- Or open a revert PR in ${WEBSITE_REPO} to remove ${POST_PATH}"
+            } >> "$GITHUB_STEP_SUMMARY"
+            exit 1
+          fi
+
+          # Outputs reference the branch and the relative post path inside website repo
           echo "branch=$BRANCH" >> $GITHUB_OUTPUT
           echo "post_path=$POST_PATH" >> $GITHUB_OUTPUT
 
