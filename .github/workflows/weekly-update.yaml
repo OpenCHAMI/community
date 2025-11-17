@@ -137,7 +137,16 @@ jobs:
       - name: Generate digest (Markdown) with GitHub Models → DIGEST.md
         run: |
           set -Eeuo pipefail
-          ACTIVITY_DATA=$(cat activity.json)
+          # Keep all issues, PRs, and releases but strip verbose fields to fit token limits
+          # Remove events entirely as they're redundant with issues/PRs and add significant size
+          jq '{
+            issues: [.issues[] | {title, number, repository, author, state, url}],
+            prs: [.prs[] | {title, number, repository, author, state, url}],
+            releases: [.releases[] | {name, tag_name, repository, html_url}],
+            events: []
+          }' activity.json > activity_subset.json
+          
+          ACTIVITY_DATA=$(cat activity_subset.json)
           gh models run "$MODEL_ID" --file prompts/digest.prompt.yml --var input="$ACTIVITY_DATA" > DIGEST.md
           if [ ! -f DIGEST.md ]; then
             echo "DIGEST.md not created; check model run and activity.json."
