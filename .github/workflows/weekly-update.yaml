@@ -88,9 +88,15 @@ jobs:
           gh search prs "org:$ORG" "is:public" "updated:>$SINCE" \
             --json title,number,repository,author,createdAt,updatedAt,state,labels,url > prs.json
 
-          # Releases created in last 7 days (via search API)
-          gh api -H "Accept: application/vnd.github+json" \
-            "/search/issues?q=org:$ORG+is:release+created:>$SINCE" > releases.json || echo '{}' > releases.json
+          # Releases (enumerate repos and fetch via REST API)
+          gh api "/orgs/$ORG/repos?per_page=100&type=public" > repos.json
+          : > releases.jsonl
+          jq -r '.[].name' repos.json | while read -r REPO; do
+            gh api -H "Accept: application/vnd.github+json" "/repos/$ORG/$REPO/releases?per_page=100" \
+              | jq -c --arg SINCE "${SINCE}T00:00:00Z" '.[] | select(.created_at >= $SINCE) | {name, tag_name, created_at, html_url, repository:"'$ORG'/'$REPO'"}' \
+              >> releases.jsonl || true
+          done
+          jq -s '.' releases.jsonl > releases.json || echo '[]' > releases.json
 
           # Public org events (best effort)
           gh api "/orgs/$ORG/events" > events.json || echo '[]' > events.json
