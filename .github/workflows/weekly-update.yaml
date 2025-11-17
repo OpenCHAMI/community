@@ -86,7 +86,7 @@ jobs:
 
           # PRs updated/merged in last 7 days
           gh search prs "org:$ORG" "is:public" "updated:>$SINCE" \
-            --json title,number,repository,author,createdAt,updatedAt,mergedAt,state,labels,url > prs.json
+            --json title,number,repository,author,createdAt,updatedAt,state,labels,url > prs.json
 
           # Releases created in last 7 days (via search API)
           gh api -H "Accept: application/vnd.github+json" \
