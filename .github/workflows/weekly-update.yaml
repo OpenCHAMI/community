@@ -137,7 +137,9 @@ jobs:
       - name: Generate digest (Markdown) with GitHub Models → DIGEST.md
         run: |
           set -Eeuo pipefail
-          gh models run "$MODEL_ID" --file prompts/digest.prompt.yml < activity.json > DIGEST.md
+          # Pass activity.json content as a template variable to the prompt file
+          ACTIVITY_DATA=$(cat activity.json)
+          gh models run "$MODEL_ID" --file prompts/digest.prompt.yml --var input="$ACTIVITY_DATA" > DIGEST.md
           if [ ! -f DIGEST.md ]; then
             echo "DIGEST.md not created; check model run and activity.json."
             exit 1
@@ -200,7 +202,7 @@ jobs:
           git config user.email "bot@openchami.org"
           git checkout -b "$BRANCH"
           git add "${POST_PATH_RELATIVE}"
-          git commit -m "feat(blog): add ${{ steps.post.outputs.title }}"
+          git commit -s -m "feat(blog): add ${{ steps.post.outputs.title }}"
           git push --set-upstream origin "$BRANCH"
 
           echo "branch=$BRANCH" >> $GITHUB_OUTPUT
