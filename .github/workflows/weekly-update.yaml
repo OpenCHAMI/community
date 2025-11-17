@@ -137,7 +137,8 @@ jobs:
       - name: Generate digest (Markdown) with GitHub Models → DIGEST.md
         run: |
           set -Eeuo pipefail
-          gh models run "$MODEL_ID" --file prompts/digest.prompt.yml < activity.json > DIGEST.md
+          ACTIVITY_DATA=$(cat activity.json)
+          gh models run "$MODEL_ID" --file prompts/digest.prompt.yml --var input="$ACTIVITY_DATA" > DIGEST.md
           if [ ! -f DIGEST.md ]; then
             echo "DIGEST.md not created; check model run and activity.json."
             exit 1
