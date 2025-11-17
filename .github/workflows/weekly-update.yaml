@@ -14,7 +14,7 @@ permissions:
 env:
   ORG: OpenCHAMI
   WEBSITE_REPO: OpenCHAMI/openchami.org
-  POST_DIR: content/posts/weekly
+  POST_DIR: content/news/weekly
   LOCAL_TZ: America/Denver
   POST_TIME: "09:00:00"   # local publish time in the Hugo front matter
   MODEL_ID: openai/gpt-4.1-mini
