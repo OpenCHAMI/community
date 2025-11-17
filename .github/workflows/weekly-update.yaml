@@ -138,6 +138,11 @@ jobs:
         run: |
           set -Eeuo pipefail
           gh models run "$MODEL_ID" --file prompts/digest.prompt.yml < activity.json > DIGEST.md
+          if [ ! -f DIGEST.md ]; then
+            echo "DIGEST.md not created; check model run and activity.json."
+            exit 1
+          fi
+          cat DIGEST.md
         env:
           GH_TOKEN: ${{ github.token }}
           MODEL_ID: ${{ env.MODEL_ID }}
