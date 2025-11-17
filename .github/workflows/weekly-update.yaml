@@ -180,6 +180,10 @@ jobs:
           POST_PATH="website/${POST_DIR}/${{ steps.dates.outputs.pub_date }}.md"
 
           mkdir -p "website/${POST_DIR}"
+          if [ ! -f POST.md ]; then
+            echo "POST.md is missing; check if previous steps failed."
+            exit 1
+            fi
           cp POST.md "${POST_PATH}"
 
           cd website
