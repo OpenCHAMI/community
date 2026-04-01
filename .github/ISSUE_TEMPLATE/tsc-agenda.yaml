@@ -1,7 +1,7 @@
 name: TSC Meeting Agenda Item
 description: Propose an agenda item to discuss at an upcoming TSC meeting
 title: "AGENDA TOPIC"
-labels: ["meeting-agenda"]
+labels: ["meeting-agenda", "TSC Agenda Item"]
 body:
   - type: markdown
     attributes:
