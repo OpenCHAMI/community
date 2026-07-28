@@ -137,13 +137,14 @@ jobs:
       - name: Generate digest (Markdown) with GitHub Models → DIGEST.md
         run: |
           set -Eeuo pipefail
-          # Keep all issues, PRs, and releases but strip verbose fields to fit token limits
-          # Remove events entirely as they're redundant with issues/PRs and add significant size
+          # Reduce payload to fit gpt-4.1-mini's 8000-token request limit:
+          # - Extract plain strings from nested objects (repository.nameWithOwner, author.login)
+          # - Cap item counts (issues ≤15, PRs ≤15, releases ≤10)
+          # - Drop events entirely (redundant with issues/PRs)
           jq '{
-            issues: [.issues[] | {title, number, repository, author, state, url}],
-            prs: [.prs[] | {title, number, repository, author, state, url}],
-            releases: [.releases[] | {name, tag_name, repository, html_url}],
-            events: []
+            issues: [.issues[] | {title, number, repository: (.repository.nameWithOwner // .repository), author: (.author.login // .author), state, url}] | .[0:15],
+            prs: [.prs[] | {title, number, repository: (.repository.nameWithOwner // .repository), author: (.author.login // .author), state, url}] | .[0:15],
+            releases: [.releases[] | {name, tag_name, repository, html_url}] | .[0:10]
           }' activity.json > activity_subset.json
           
           ACTIVITY_DATA=$(cat activity_subset.json)
