@@ -42,6 +42,16 @@ OpenCHAMI needs a default that supports shared credential access across services
 - Routine human access to raw BMC passwords should be denied by policy. Privileged recovery access must be explicitly controlled and audited; application policies cannot prevent access by an administrator who controls the secret manager or its host.
 - Deployments must enable audit logging and protect the resulting records. TLS, persistent storage, backup and restore, and seal/unseal procedures are deployment requirements, including in air-gapped environments.
 
+### Implementation Requirements
+
+Before adoption, the following requirements must be satisfied. Link the design and implementation follow-up issues here once their owners are agreed upon; the schema, rotation state machine, and deployment design remain outside this ADR.
+
+- **Shared credential contract:** Define a credential-reference and format contract reconciling [Magellan PR #197](https://github.com/OpenCHAMI/magellan/pull/197) with RFD #128. Require a compatibility test proving that the rotation service writes credentials the intended consumers can retrieve and use.
+- **Recoverable rotation:** Require a recoverable protocol and fault-injection evidence before adopting the default rotation implementation. Demonstrate recovery to a working BMC credential after process crashes, ambiguous Redfish timeouts, competing rotations, and a successful BMC password change followed by a failed secret-store write.
+- **Qualification evidence:** For OpenBao and alternatives claimed compatible, verify reader/writer permissions, API and CLI credential disclosure protections, authentication renewal, offline recovery, protected auditing and audit-device failure recovery, and backup/restore.
+
+This ADR addresses only the default secret-store decision; it does not close RFD #128's credential-generation, authentication, or rotation-lifecycle work. Merging this **Proposed** record does not imply that the default is integrated or operationally qualified.
+
 ---
 
 ## Other Options Considered
@@ -94,16 +104,16 @@ OpenCHAMI needs a default that supports shared credential access across services
 
 The earlier discussion favored encrypted local storage before later proposing OpenBao as the default. This ADR records that updated direction; it does not assert that every participant endorsed every implementation detail.
 
-Implementation design must address recovery when a BMC accepts a password change but the secret-store update fails or the process stops. Redfish updates and secret-store writes are not one atomic transaction; simply writing the new password after a successful HTTP response can lose access to the BMC.
-
 ---
 
 ## References
 
 - [RFD #128: BMC credential storage discussion](https://github.com/OpenCHAMI/roadmap/issues/128)
+- [Magellan PR #197: related credential-store implementation](https://github.com/OpenCHAMI/magellan/pull/197)
 - [RFD author's support for OpenBao as the default](https://github.com/OpenCHAMI/roadmap/issues/128#issuecomment-6043975746)
 - [Credential manager prototype](https://github.com/bmcdonald3/credential-manager)
 - [Encrypted local store proposal: hms-securestorage PR #20](https://github.com/Cray-HPE/hms-securestorage/pull/20)
 - [RFD #133: Evolve Magellan into the BMC interaction layer](https://github.com/OpenCHAMI/roadmap/issues/133)
 - [OpenBao documentation](https://openbao.org/docs/)
+- [OpenBao audit-device behavior](https://openbao.org/docs/audit/)
 - [OpenBao source and license](https://github.com/openbao/openbao)
